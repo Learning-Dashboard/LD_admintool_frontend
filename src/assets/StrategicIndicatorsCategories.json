@@ -1,0 +1,14 @@
+[
+  {
+    "name": "Good",
+    "color": "#00ff00"
+  },
+  {
+    "name": "Neutral",
+    "color": "#ff8000"
+  },
+  {
+    "name": "Bad",
+    "color": "#ff0000"
+  }
+]

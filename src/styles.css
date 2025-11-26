@@ -1,0 +1,21 @@
+.custom-button {
+    background: #222;
+    color: #fff;
+    border-radius: 6px;
+    padding: 0.7em 2em;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    margin-left: 1em;
+    transition: background 200ms;
+    &:hover {
+        background: #444;
+        transform: scale(1.05);
+    }
+
+}
+
+.back-button {
+   margin-top: 2rem;
+}
+
