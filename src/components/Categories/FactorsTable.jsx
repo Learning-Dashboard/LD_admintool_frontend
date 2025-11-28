@@ -12,20 +12,14 @@ function FactorsTable({ factors, allFactors, allCategories, project, teams}) {
   const selectOptions = useCategorySelectOptions(allCategories);
 
   const getCatValue = id => {
-    // Si ya hay un valor seleccionado en catMap, usarlo
     if (catMap[id]) return catMap[id];
     
-    // Si no, buscar el factor y convertir su categoryName a formato JSON
     const factor = factors.find(f => f.id === id);
     if (!factor?.categoryName) return "";
     
-    // Buscar si la categoría tiene un patternGroup
     const category = allCategories.find(c => c.name === factor.categoryName);
-    if (category?.patternGroup) {
-      return JSON.stringify({ patternGroup: category.patternGroup });
-    } else {
-      return JSON.stringify({ name: factor.categoryName });
-    }
+    if (category?.patternGroup) return JSON.stringify({ patternGroup: category.patternGroup });
+    return JSON.stringify({ name: factor.categoryName });
   };
 
   const handleChange = (id, value) => setCatMap(m => ({ ...m, [id]: value }));
@@ -33,14 +27,13 @@ function FactorsTable({ factors, allFactors, allCategories, project, teams}) {
   const handleSave = async factor => {
     setSaving(s => ({ ...s, [factor.id]: true }));
     try {
-      const selected = catMap[factor.id] ?? "";
+      const selected = getCatValue(factor.id);
       if (!selected) {
         setMessage({ type: "error", text: "No category selected!" });
         setSaving(s => ({ ...s, [factor.id]: false }));
         return;
       }
 
-      // Parse selected category
       let selectedCat;
       try {
         selectedCat = JSON.parse(selected);
@@ -51,7 +44,6 @@ function FactorsTable({ factors, allFactors, allCategories, project, teams}) {
         return;
       }
       
-      // Buscar todos los factores con el mismo externalId que pertenezcan a equipos de esta asignatura
       const factorsToUpdate = allFactors.filter(f => 
         f.externalId === factor.externalId && 
         f.project && 
@@ -60,26 +52,20 @@ function FactorsTable({ factors, allFactors, allCategories, project, teams}) {
 
       console.log(`Updating ${factorsToUpdate.length} factors with externalId ${factor.externalId}`);
 
-      // Iterar por todos los factores (uno por cada equipo)
       for (const factorToUpdate of factorsToUpdate) {
         if (!factorToUpdate.project) continue;
-
-        // Buscar el equipo correspondiente a este factor
         const team = teams.find(t => (t.externalId || t.name) === factorToUpdate.project.externalId);
         if (!team) continue;
 
         let categoryToAssign;
         if (selectedCat.patternGroup) {
-          // CAS 2: factor de equip amb patró → buscar categoria real segons nombre d'estudiants
           const n = team.students?.length || 0;
-          // Buscar la categoría real que tiene el mismo patternGroup y empieza con "N members"
           const found = allCategories.find(
             c => c.patternGroup === selectedCat.patternGroup && c.name.startsWith(`${n} members`)
           );
           categoryToAssign = found ? found.name : "";
           console.log(`Pattern category for team ${team.name} (${n} students): patternGroup=${selectedCat.patternGroup} → ${categoryToAssign}`);
         } else {
-          // CAS 1: factor de equip sense patró → usar nombre directe
           categoryToAssign = selectedCat.name;
         }
 

@@ -16,6 +16,19 @@ function ImportProject({ onBack }) {
   const handleConfirm = async () => {
     try {
       await importarProjectes(parsedData);
+      const mapping = JSON.parse(localStorage.getItem('assignatura_teams_mapping')) || {};
+      
+      parsedData.forEach(team => {
+        const subject = team.assignatura;
+        const teamName = team.name || team.externalId;
+
+        if (!subject || !teamName) return;
+        if (!mapping[subject]) mapping[subject] = [];
+        if (!mapping[subject].includes(teamName)) mapping[subject].push(teamName);
+      });
+      
+      localStorage.setItem('assignatura_teams_mapping', JSON.stringify(mapping));
+      
       setImportResult("Importació completada correctament!");
       setTimeout(() => setImportResult(""), 3500);
     } catch (err) {

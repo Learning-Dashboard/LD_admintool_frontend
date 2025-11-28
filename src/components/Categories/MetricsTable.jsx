@@ -67,34 +67,22 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
 
   const getCatValue = id => {
     if (isPattern) {
-      // Si hay un valor seleccionado, usarlo
       if (catMap["_pattern_"]) return catMap["_pattern_"];
       
-      // Si no, buscar la categoría de la primera métrica del patrón
       const firstMetric = metrics[0];
       if (!firstMetric?.categoryName) return "";
       
-      // Buscar si la categoría tiene un patternGroup
       const category = allCategories.find(c => c.name === firstMetric.categoryName);
-      if (category?.patternGroup) {
-        // Para patrones, solo devolver el patternGroup (sin name específico)
-        return JSON.stringify({ patternGroup: category.patternGroup });
-      } else {
-        return JSON.stringify({ name: firstMetric.categoryName });
-      }
+      if (category?.patternGroup) return JSON.stringify({ patternGroup: category.patternGroup });
+      return JSON.stringify({ name: firstMetric.categoryName });
     }
     
-    // Si ya hay un valor seleccionado en catMap, usarlo
     if (catMap[id]) return catMap[id];
-    
-    // Si no, buscar la métrica y convertir su categoryName a formato JSON
     const metric = metrics.find(m => m.id === id);
     if (!metric?.categoryName) return "";
-    
-    // Buscar si la categoría tiene un patternGroup
     const category = allCategories.find(c => c.name === metric.categoryName);
     if (category?.patternGroup) {
-      // Para patrones de métricas de equipo, solo devolver el patternGroup
+      
       return JSON.stringify({ patternGroup: category.patternGroup });
     } else {
       return JSON.stringify({ name: metric.categoryName });
@@ -108,8 +96,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
 
   const handleSave = async metric => {
     setSaving(s => ({ ...s, [metric.id]: true }));
-
-    const selected = catMap[metric.id] ?? "";
+    const selected = getCatValue(metric.id);
     if (!selected) {
       setMessage({ type: "error", text: "No category selected!" });
       setSaving(s => ({ ...s, [metric.id]: false }));
@@ -120,17 +107,12 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
     try {
       selectedCat = JSON.parse(selected);
     } catch (err) {
-      console.error("Failed to parse selected category:", selected);
       setMessage({ type: "error", text: "Invalid category format!" });
       setSaving(s => ({ ...s, [metric.id]: false }));
       return;
     }
 
     try {
-      console.log("Metric to save:", metric);
-      console.log("Teams:", teams.map(t => ({ externalId: t.externalId, name: t.name })));
-      
-      // Buscar todas las métricas con el mismo externalId que pertenezcan a equipos de esta asignatura
       const metricsToUpdate = allMetrics.filter(m => {
         const matchesExternalId = m.externalId === metric.externalId;
         const hasProject = !!m.project;
@@ -140,9 +122,6 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
         return matchesExternalId && hasProject && matchesTeam;
       });
 
-      console.log(`Updating ${metricsToUpdate.length} metrics with externalId ${metric.externalId}`);
-
-      // Por cada métrica (una por equipo)
       for (const metricToUpdate of metricsToUpdate) {
         if (!metricToUpdate.project) continue;
         const team = teams.find(t => (t.externalId || t.name) === metricToUpdate.project.externalId);
@@ -150,10 +129,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
 
         let categoryToAssign;
         if (selectedCat.patternGroup) {
-          // CAS 2: métrica de equip amb patró
           const n = team.students?.length || 0;
-          console.log(`Looking for pattern: patternGroup=${selectedCat.patternGroup}, team=${team.name}, students=${n}`);
-          
           const found = allCategories.find(
             c => c.patternGroup === selectedCat.patternGroup && c.name.startsWith(`${n} members`)
           );
@@ -171,7 +147,6 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
             throw new Error(`No hi ha categoria per ${n} membres. Disponibles: ${available.join(', ')} membres`);
           }
         } else {
-          // CAS 1: métrica de equip sense patró
           categoryToAssign = selectedCat.name;
           console.log(`Direct category assignment: ${categoryToAssign}`);
         }
@@ -192,7 +167,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
   const handlePatternSave = async () => {
     setSaving(s => ({ ...s, _pattern_: true }));
     
-    const selected = catMap["_pattern_"] ?? "";
+    const selected = getCatValue(metrics[0]?.id);
     if (!selected) {
       setMessage({ type: "error", text: "No category selected!" });
       setSaving(s => ({ ...s, _pattern_: false }));
@@ -210,17 +185,12 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
     }
 
     try {
-      console.log("Pattern save - selected category:", selectedCat);
-      console.log("Pattern save - metrics count:", metrics.length);
-      
-      // Para métricas individuales, iterar por cada métrica y asignar categoría
       for (const metricToUpdate of metrics) {
         if (!metricToUpdate.project) continue;
         
         let categoryToAssign;
         
         if (selectedCat.patternGroup) {
-          // Si tiene patternGroup, buscar la categoría correspondiente al tamaño del equipo
           const team = teams.find(t => (t.externalId || t.name) === metricToUpdate.project.externalId);
           if (!team) {
             console.warn(`Team not found for metric ${metricToUpdate.id}`);
@@ -247,7 +217,6 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
             throw new Error(`No hi ha categoria per ${n} membres. Disponibles: ${available.join(', ')} membres`);
           }
         } else {
-          // Categoría normal sin patrón
           categoryToAssign = selectedCat.name;
         }
         

@@ -8,6 +8,17 @@
     ]
   },
   {
+    "category": "2 members contribution",
+    "patternGroup": "membersContribution",
+    "interval": [
+      { "upperThreshold": 100, "type": "High", "color": "#ff0000" },
+      { "upperThreshold": 60, "type": "Up", "color": "#ff8000" },
+      { "upperThreshold": 50, "type": "Well", "color": "#00ff00" },
+      { "upperThreshold": 40, "type": "Down", "color": "#ff8000" },
+      { "upperThreshold": 20, "type": "Low", "color": "#ff0000" }
+    ]
+  },
+  {
     "category": "3 members contribution",
     "patternGroup": "membersContribution",
     "interval": [
