@@ -50,17 +50,8 @@ function EditProjectForm({ project, onDone, onBack }) {
   return (
     <div style={{ textAlign: "center" }}>
       {message && <FeedbackMessage message={message} onClose={() => setMessage(null)} />}
-      <h3>Edit Project: {project.name}</h3>
+      <h3>Project: {project.name}</h3>
       <div style={{ margin: "1em auto", maxWidth: 400 }}>
-        <div style={{ marginBottom: "1em" }}>
-          <label style={{ marginRight: "1em" }}>Project Name:</label>
-          <input
-            value={edited.name}
-            onChange={e => handleChange('name', e.target.value)}
-            disabled={saving}
-            style={{ minWidth: "380px" }}
-          />
-        </div>
         <div style={{ marginBottom: "1em" }}>
           <label style={{ marginRight: "1em" }}>GitHub URL:</label>
           <input
