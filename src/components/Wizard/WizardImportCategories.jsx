@@ -51,7 +51,9 @@ const WizardImportCategories = ({ onNext, onBack }) => {
 
             <div className="wizard-controls">
                 <button className="custom-button secondary" onClick={onBack}>Back</button>
-                <button className="custom-button" onClick={onNext} disabled={loading || !importResult || importResult.includes("Error")}>Next Step</button>
+                {importResult && !importResult.includes("Error") && (
+                    <button className="custom-button" onClick={onNext}>Next Step</button>
+                )}
             </div>
         </div>
     );

@@ -38,10 +38,8 @@ function ManageSubjectCategories({ subject, onBack }) {
   useEffect(() => {
     async function fetchAll() {
       setLoading(true);
-      const teamNamesMapping = JSON.parse(localStorage.getItem('subject_teams_mapping')) || {};
-      const teamNames = teamNamesMapping[subject] || [];
       const allProjects = await llistarProjectes();
-      const teamsObjects = allProjects.filter(p => teamNames.includes(p.name || p.externalId));
+      const teamsObjects = allProjects.filter(p => p.subject === subject);
       setTeams(teamsObjects);
       const metricsPromises = teamsObjects.map(async (t) => {
         const response = await getMetricsByProject(t.externalId || t.name);

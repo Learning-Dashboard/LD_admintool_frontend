@@ -16,44 +16,15 @@ function ImportProject({ onNextStep }) {
 
   const handleConfirm = async (dataWithTokens) => {
     try {
-      // Create a mapping of externalId/name to subject BEFORE sending to backend
-      // because backend doesn't return subject in the response
-      const subjectMapping = {};
-      dataWithTokens.forEach(team => {
-        const key = team.externalId || team.name;
-        subjectMapping[key] = team.subject;
-      });
-
       const response = await importarProjectes(dataWithTokens);
 
-      // Only save to localStorage teams that were successfully imported
-      if (response.data.validProjects && response.data.validProjects.length > 0) {
-        const mapping = JSON.parse(localStorage.getItem('subject_teams_mapping')) || {};
-        response.data.validProjects.forEach(team => {
-          const teamKey = team.externalId || team.name;
-          const subject = subjectMapping[teamKey];
-          const teamName = team.name || team.externalId;
-
-          if (!subject || !teamName) {
-            return;
-          }
-          if (!mapping[subject]) mapping[subject] = [];
-          if (!mapping[subject].includes(teamName)) {
-            mapping[subject].push(teamName);
-          }
-        });
-
-        localStorage.setItem('subject_teams_mapping', JSON.stringify(mapping));
-      } else {
-      }
-
-      // Mostrar resultats en modal
+      // Show results in modal
       setImportResult({
         type: 'success',
         data: response.data
       });
 
-      // Netejar la preview després de mostrar el modal
+      // Clear preview after showing modal
       setParsedData([]);
 
     } catch (err) {
@@ -109,7 +80,7 @@ function ImportProject({ onNextStep }) {
         </div>
       )}
 
-      {/* <button style={{ marginTop: "2rem" }} onClick={onBack}>Tornar</button> */}
+
     </div>
   );
 }
