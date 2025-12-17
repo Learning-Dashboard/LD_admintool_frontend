@@ -5,7 +5,7 @@ import ImportResultModal from "./ImportResultModal";
 import { parseTeamsFromRows } from "../../../utils/excelParser";
 import { importarProjectes } from "../../../services/ProjectService";
 
-function ImportProject({ onBack, onNextStep }) {
+function ImportProject({ onNextStep }) {
   const [parsedData, setParsedData] = useState([]);
   const [importResult, setImportResult] = useState(null);
 
@@ -109,7 +109,7 @@ function ImportProject({ onBack, onNextStep }) {
         </div>
       )}
 
-      <button style={{ marginTop: "2rem" }} onClick={onBack}>Tornar</button>
+      {/* <button style={{ marginTop: "2rem" }} onClick={onBack}>Tornar</button> */}
     </div>
   );
 }

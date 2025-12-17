@@ -23,6 +23,16 @@
     transition: all 200ms;
 }
 
+.step-indicator.clickable:hover {
+    background: rgba(77, 171, 247, 0.15);
+    transform: translateY(-2px);
+}
+
+.step-indicator.disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
 .step-indicator.active {
     color: #4dabf7;
     background: rgba(77, 171, 247, 0.1);

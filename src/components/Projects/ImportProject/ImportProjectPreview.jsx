@@ -72,7 +72,6 @@ function ImportProjectPreview({ data, onConfirm, onCancel }) {
                 <div key={i} style={{
                   flex: "1 1 calc(25% - 0.75rem)",
                   minWidth: "200px",
-                  maxWidth: "25%",
                   backgroundColor: "#333",
                   padding: "0.8rem",
                   borderRadius: "6px"
