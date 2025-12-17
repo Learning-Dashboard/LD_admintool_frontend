@@ -1,69 +1,122 @@
-import React, { useState }  from "react";
-
+import React, { useState, useMemo } from "react";
 
 function ImportProjectPreview({ data, onConfirm, onCancel }) {
-  const [tokens, setTokens] = useState({});
-  
+  const [tokens, setTokens] = useState({}); // { [subject]: token }
+
   if (!data || data.length === 0) return null;
 
-  const handleTokenChange = (index, value) => {
-    setTokens(prev => ({ ...prev, [index]: value }));
+  // Group teams by subject
+  const groupedData = useMemo(() => {
+    const groups = {};
+    data.forEach(team => {
+      const subject = team.subject || "Unknown Subject";
+      if (!groups[subject]) groups[subject] = [];
+      groups[subject].push(team);
+    });
+    return groups;
+  }, [data]);
+
+  const subjects = Object.keys(groupedData);
+
+  const handleTokenChange = (subject, value) => {
+    setTokens(prev => ({ ...prev, [subject]: value }));
   };
 
-  const allTokensFilled = data.every((_, index) => tokens[index]?.trim());
+  const allTokensFilled = subjects.every(subject => tokens[subject]?.trim());
 
   const handleConfirmWithTokens = () => {
-    const dataWithTokens = data.map((team, index) => ({
+    const dataWithTokens = data.map(team => ({
       ...team,
-      githubToken: tokens[index]
+      githubToken: tokens[team.subject || "Unknown Subject"]
     }));
     onConfirm(dataWithTokens);
   };
 
   return (
     <div>
-      <h3>Import preview</h3>
-      {data.map((t, i) => (
-        <div key={i} style={{ border: "1px solid #ccc", padding: "1rem", margin: "1rem" }}>
-          <h4>{t.name}</h4>
-          <p>
-            GitHub: {t.identities.GITHUB?.url || "-"} <br />
-            Taiga: {t.identities.TAIGA?.url || "-"}
-          </p>
-          <div style={{ marginTop: "1rem", marginBottom: "1rem" }}>
-            <label style={{ fontWeight: "bold", marginRight: "0.5rem" }}>
-              GitHub Token: <span style={{ color: "red" }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={tokens[i] || ""}
-              onChange={(e) => handleTokenChange(i, e.target.value)}
-              placeholder="Introduce the GitHub token for this team"
-              style={{ minWidth: "300px", padding: "0.3rem" }}
-            />
+      <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+        {subjects.map(subject => (
+          <div key={subject} style={{
+            width: "100%",
+            border: "1px solid #444",
+            borderRadius: "8px",
+            padding: "1.5rem",
+            backgroundColor: "#2a2a2a"
+          }}>
+            <div style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: "1rem",
+              flexWrap: "wrap",
+              gap: "0.5rem"
+            }}>
+              <h4 style={{ margin: 0, color: "#4dabf7", fontSize: "1.1rem" }}>{subject}</h4>
+
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <label style={{ fontWeight: "bold", fontSize: "0.9rem" }}>
+                  GitHub Token: <span style={{ color: "red" }}>*</span>
+                </label>
+                <input
+                  type="text"
+                  value={tokens[subject] || ""}
+                  onChange={(e) => handleTokenChange(subject, e.target.value)}
+                  placeholder={`Token for ${subject}`}
+                  style={{ padding: "0.4rem", borderRadius: "4px", border: "1px solid #555", minWidth: "250px", fontSize: "0.9rem" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
+              {groupedData[subject].map((t, i) => (
+                <div key={i} style={{
+                  flex: "1 1 calc(25% - 0.75rem)",
+                  minWidth: "200px",
+                  maxWidth: "25%",
+                  backgroundColor: "#333",
+                  padding: "0.8rem",
+                  borderRadius: "6px"
+                }}>
+                  <h5 style={{ margin: "0 0 0.5rem 0", fontSize: "0.95rem", color: "#eee" }}>{t.name}</h5>
+                  <div style={{ fontSize: "0.8rem", color: "#aaa", marginBottom: "0.6rem" }}>
+                    <div style={{ marginBottom: "0.2rem" }}>Github: {t.identities.GITHUB?.url || "-"}</div>
+                    <div>Taiga: {t.identities.TAIGA?.url || "-"}</div>
+                  </div>
+
+                  <div style={{ fontSize: "0.8rem" }}>
+                    <div style={{ fontWeight: "bold", marginBottom: "0.4rem", color: "#999" }}>Students:</div>
+                    <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                      {t.students.map((s, idx) => (
+                        <div key={idx} style={{ paddingLeft: "0.3rem", color: "#aaa", fontSize: "0.75rem" }}>
+                          {s.name} <span style={{ opacity: 0.85 }}>(Github: {s.identities.GITHUB?.username || "-"} | Taiga: {s.identities.TAIGA?.username || "-"})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <ul>
-            {t.students.map((s, idx) => (
-              <li key={idx}>
-                {s.name} - GH: {s.identities.GITHUB?.username || "-"} - TG: {s.identities.TAIGA?.username || "-"}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-      <button 
-        onClick={handleConfirmWithTokens} 
-        disabled={!allTokensFilled}
-        style={{ 
-          opacity: allTokensFilled ? 1 : 0.5,
-          cursor: allTokensFilled ? "pointer" : "not-allowed"
-        }}
-      >
-        Import teams
-      </button>
-      <button onClick={onCancel}>Cancel</button>
+        ))}
+      </div>
+
+      <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem", justifyContent: "center" }}>
+        <button
+          className="custom-button"
+          onClick={handleConfirmWithTokens}
+          disabled={!allTokensFilled}
+          style={{
+            opacity: allTokensFilled ? 1 : 0.5,
+            cursor: allTokensFilled ? "pointer" : "not-allowed"
+          }}
+        >
+          Import {data.length} teams
+        </button>
+        <button className="custom-button secondary" onClick={onCancel}>Cancel</button>
+      </div>
     </div>
   );
 }
 
 export default ImportProjectPreview;
+

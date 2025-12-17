@@ -7,7 +7,7 @@ function AdministrateCategories({ onBack }) {
   const [selectedSubject, setSelectedSubject] = useState(null);
 
   useEffect(() => {
-    const saved = localStorage.getItem('assignatura_teams_mapping');
+    const saved = localStorage.getItem('subject_teams_mapping');
     if (saved) setMapping(JSON.parse(saved));
   }, []);
 

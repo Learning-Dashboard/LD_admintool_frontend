@@ -38,7 +38,7 @@ function ManageSubjectCategories({ subject, onBack }) {
   useEffect(() => {
     async function fetchAll() {
       setLoading(true);
-      const teamNamesMapping = JSON.parse(localStorage.getItem('assignatura_teams_mapping')) || {};
+      const teamNamesMapping = JSON.parse(localStorage.getItem('subject_teams_mapping')) || {};
       const teamNames = teamNamesMapping[subject] || [];
       const allProjects = await llistarProjectes();
       const teamsObjects = allProjects.filter(p => teamNames.includes(p.name || p.externalId));
@@ -50,7 +50,7 @@ function ManageSubjectCategories({ subject, onBack }) {
           project: { externalId: t.externalId, name: t.name, id: t.id }
         }));
       });
-      
+
       const factorsPromises = teamsObjects.map(async (t) => {
         const response = await getFactorsByProject(t.externalId || t.name);
         return response.data.map(factor => ({
@@ -94,7 +94,7 @@ function ManageSubjectCategories({ subject, onBack }) {
   return (
     <div>
       <h3>Manage Categories for {subject}</h3>
-      <div style={{display: "flex", justifyContent: "center", alignItems: "center", gap: "2em", marginBottom: "2em" }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "2em", marginBottom: "2em" }}>
         <button
           className={`custom-button${activeTab === "metrics" ? " active" : ""}`}
           onClick={() => setActiveTab("metrics")}
@@ -114,12 +114,12 @@ function ManageSubjectCategories({ subject, onBack }) {
       {activeTab === "metrics" && (
         <div>
           <h4>Mètriques d'equip</h4>
-          <MetricsTable 
-            metrics={groupedMetrics.team} 
+          <MetricsTable
+            metrics={groupedMetrics.team}
             allMetrics={metrics}
-            allCategories={metricCategories} 
-            project={subject} 
-            teams={teams} 
+            allCategories={metricCategories}
+            project={subject}
+            teams={teams}
           />
 
           <h4>Mètriques individuals</h4>
@@ -140,12 +140,12 @@ function ManageSubjectCategories({ subject, onBack }) {
       {activeTab === "factors" && (
         <div>
           <h4>Factors</h4>
-          <FactorsTable 
-            factors={dedupedFactors} 
+          <FactorsTable
+            factors={dedupedFactors}
             allFactors={factors}
-            allCategories={factorCategories} 
-            project={subject} 
-            teams={teams} 
+            allCategories={factorCategories}
+            project={subject}
+            teams={teams}
           />
         </div>
       )}

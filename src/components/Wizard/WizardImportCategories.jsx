@@ -14,7 +14,7 @@ const WizardImportCategories = ({ onNext, onBack }) => {
             await importarCategoriesMetriques(MetricsCategories);
             await importarCategoriesFactors(FactorsCategories);
             await importarCategoriesStrategicIndicators(StrategicIndicatorsCategories);
-            setImportResult("Categories correctly imported!");
+            setImportResult("Categories imported successfully!");
         } catch (err) {
             setImportResult("Error importing: " + err.message);
         } finally {
@@ -38,11 +38,14 @@ const WizardImportCategories = ({ onNext, onBack }) => {
                     marginTop: "1.5rem",
                     marginBottom: "1rem",
                     padding: "1rem",
-                    background: importResult.includes("Error") ? "#f8d7da" : "#d4edda",
-                    color: importResult.includes("Error") ? "#721c24" : "#155724",
-                    borderRadius: "4px"
+                    background: importResult.includes("Error") ? "rgba(220, 53, 69, 0.1)" : "rgba(40, 167, 69, 0.1)",
+                    color: importResult.includes("Error") ? "#ff6b6b" : "#51cf66",
+                    border: importResult.includes("Error") ? "1px solid rgba(220, 53, 69, 0.3)" : "1px solid rgba(40, 167, 69, 0.3)",
+                    borderRadius: "6px",
+                    textAlign: "center",
+                    fontSize: "0.95rem"
                 }}>
-                    <p>{importResult}</p>
+                    <p style={{ margin: 0 }}>{importResult}</p>
                 </div>
             )}
 
@@ -55,3 +58,4 @@ const WizardImportCategories = ({ onNext, onBack }) => {
 };
 
 export default WizardImportCategories;
+
