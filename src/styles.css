@@ -7,15 +7,60 @@
     border: none;
     cursor: pointer;
     margin-left: 1em;
-    transition: background 200ms;
-    &:hover {
-        background: #444;
-        transform: scale(1.05);
-    }
+    transition: background 200ms, transform 200ms;
+}
 
+.custom-button:hover {
+    background: #444;
+    transform: scale(1.05);
 }
 
 .back-button {
-   margin-top: 2rem;
+    margin-top: 2rem;
 }
 
+/* Admin Dashboard Styles */
+.admin-dashboard {
+    padding: 2rem;
+}
+
+.admin-dashboard h2 {
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+/* Tab Navigation */
+.tab-navigation {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 3rem;
+}
+
+.tab-button {
+    padding: 1rem 2rem;
+    background: transparent;
+    border: 2px solid #555;
+    border-radius: 8px;
+    color: #aaa;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 200ms ease;
+}
+
+.tab-button:hover {
+    border-color: #888;
+    color: #fff;
+}
+
+.tab-button.active {
+    background: #333;
+    border-color: #007bff;
+    color: #fff;
+}
+
+/* Tab Content */
+.tab-content {
+    padding: 2rem 0;
+}

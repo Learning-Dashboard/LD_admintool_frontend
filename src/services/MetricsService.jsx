@@ -31,3 +31,8 @@ export async function editMetric(id, { threshold, url, categoryName }, project) 
     { headers: { "Content-Type": "multipart/form-data" } }
   );
 }
+
+// POST import metrics
+export async function importMetrics() {
+  return axios.get("/api/metrics/import");
+}

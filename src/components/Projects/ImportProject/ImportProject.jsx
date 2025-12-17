@@ -5,7 +5,7 @@ import ImportResultModal from "./ImportResultModal";
 import { parseTeamsFromRows } from "../../../utils/excelParser";
 import { importarProjectes } from "../../../services/ProjectService";
 
-function ImportProject({ onBack }) {
+function ImportProject({ onBack, onNextStep }) {
   const [parsedData, setParsedData] = useState([]);
   const [importResult, setImportResult] = useState(null);
 
@@ -17,13 +17,13 @@ function ImportProject({ onBack }) {
   const handleConfirm = async (dataWithTokens) => {
     try {
       const response = await importarProjectes(dataWithTokens);
-      
+
       console.log("Response del backend:", response.data);
-      
+
       // Si hi ha projectes vàlids, guardar-los al localStorage
       if (response.data.validProjects && response.data.validProjects.length > 0) {
         const mapping = JSON.parse(localStorage.getItem('assignatura_teams_mapping')) || {};
-        
+
         response.data.validProjects.forEach(team => {
           const subject = team.assignatura;
           const teamName = team.name || team.externalId;
@@ -32,19 +32,19 @@ function ImportProject({ onBack }) {
           if (!mapping[subject]) mapping[subject] = [];
           if (!mapping[subject].includes(teamName)) mapping[subject].push(teamName);
         });
-        
+
         localStorage.setItem('assignatura_teams_mapping', JSON.stringify(mapping));
       }
-      
+
       // Mostrar resultats en modal
       setImportResult({
         type: 'success',
         data: response.data
       });
-      
+
       // Netejar la preview després de mostrar el modal
       setParsedData([]);
-      
+
     } catch (err) {
       console.error("Error en la importació:", err);
       setImportResult({
@@ -74,21 +74,22 @@ function ImportProject({ onBack }) {
           onCancel={handleCancel}
         />
       )}
-      
+
       {/* Modal amb els resultats */}
       {importResult && importResult.type === 'success' && (
-        <ImportResultModal 
-          result={importResult} 
-          onClose={handleCloseModal} 
+        <ImportResultModal
+          result={importResult}
+          onClose={handleCloseModal}
+          onNextStep={onNextStep}
         />
       )}
-      
+
       {/* Error general (només si no és success) */}
       {importResult && importResult.type === 'error' && (
-        <div style={{ 
+        <div style={{
           marginTop: "2rem",
-          padding: "1rem", 
-          backgroundColor: "#f8d7da", 
+          padding: "1rem",
+          backgroundColor: "#f8d7da",
           border: "2px solid #dc3545",
           borderRadius: "5px",
           color: "#721c24"
@@ -96,7 +97,7 @@ function ImportProject({ onBack }) {
           <strong>❌ Error:</strong> {importResult.message}
         </div>
       )}
-      
+
       <button style={{ marginTop: "2rem" }} onClick={onBack}>Tornar</button>
     </div>
   );

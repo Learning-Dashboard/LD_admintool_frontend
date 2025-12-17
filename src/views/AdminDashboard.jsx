@@ -1,26 +1,34 @@
 import React, { useState } from "react";
+import Wizard from "../components/Wizard/Wizard";
 import PageProjects from "../components/Projects/PageProjects";
-import PageCategories from "../components/Categories/PageCategories";
 import "../styles.css";
 
 function AdminDashboard() {
-  const [selection, setSelection] = useState(null);
+  const [activeTab, setActiveTab] = useState("wizard");
 
   return (
-    <div>
+    <div className="admin-dashboard">
       <h2>Admin Tool</h2>
-      {!selection && (
-        <div>
-          <button className="custom-button" onClick={() => setSelection("projects")}>Projects</button>
-          <button className="custom-button" onClick={() => setSelection("categories")}>Categories</button>
-        </div>
-      )}
-      {selection === "projects" && (
-        <PageProjects onBack={() => setSelection(null)} />
-      )}
-      {selection === "categories" && (
-        <PageCategories onBack={() => setSelection(null)} />
-      )}
+
+      <div className="tab-navigation">
+        <button
+          className={`tab-button ${activeTab === 'wizard' ? 'active' : ''}`}
+          onClick={() => setActiveTab('wizard')}
+        >
+          Configuration (Wizard)
+        </button>
+        <button
+          className={`tab-button ${activeTab === 'management' ? 'active' : ''}`}
+          onClick={() => setActiveTab('management')}
+        >
+          Management (Edit/Delete)
+        </button>
+      </div>
+
+      <div className="tab-content">
+        {activeTab === 'wizard' && <Wizard />}
+        {activeTab === 'management' && <PageProjects />}
+      </div>
     </div>
   );
 }

@@ -1,5 +1,8 @@
 import React, { useState } from "react";
 import { modificarProjecte, validarNouEstudiant } from "../../../services/ProjectService";
+import { importMetrics } from "../../../services/MetricsService";
+import { importQualityFactors } from "../../../services/FactorsService";
+import { fetchStrategicIndicators } from "../../../services/StrategicIndicatorsService";
 import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
@@ -53,7 +56,7 @@ function EditProjectForm({ project, onDone, onBack }) {
           }
         }];
         setEdited(prev => ({ ...prev, students }));
-        
+
         // Netejar el formulari
         setNewStudent({ name: "", githubUsername: "", taigaUsername: "" });
         setMessage({ type: "success", text: "Estudiant afegit correctament!" });
@@ -73,9 +76,21 @@ function EditProjectForm({ project, onDone, onBack }) {
     setSaving(true);
     try {
       await modificarProjecte(edited);
-      setMessage({ type: "success", text: "Projecte modificat correctament!" });
-    } catch {
-      setMessage({ type: "error", text: "Error modificant el projecte!" });
+
+      // Trigger sequential imports as required when team changes
+      setMessage({ type: "info", text: "Projecte modificat. Actualitzant mètriques..." });
+      await importMetrics();
+
+      setMessage({ type: "info", text: "Projecte modificat. Actualitzant factors..." });
+      await importQualityFactors();
+
+      setMessage({ type: "info", text: "Projecte modificat. Actualitzant indicadors..." });
+      await fetchStrategicIndicators();
+
+      setMessage({ type: "success", text: "Projecte modificat i dades actualitzades correctament!" });
+    } catch (error) {
+      console.error(error);
+      setMessage({ type: "error", text: "Error modificant el projecte o actualitzant dades!" });
     }
     setSaving(false);
   };
@@ -99,10 +114,10 @@ function EditProjectForm({ project, onDone, onBack }) {
             <span style={{ flex: 1 }}>{s.name}</span>
             <span style={{ flex: 1 }}>{s.identities?.GITHUB?.username || "-"}</span>
             <span style={{ flex: 1 }}>{s.identities?.TAIGA?.username || "-"}</span>
-            <button 
+            <button
               onClick={() => handleRemoveStudent(idx)}
               disabled={saving}
-              style={{ 
+              style={{
                 width: "80px",
                 padding: "0.3rem",
                 backgroundColor: "#dc3545",
@@ -147,10 +162,10 @@ function EditProjectForm({ project, onDone, onBack }) {
             style={{ flex: 1, padding: "0.5rem" }}
           />
         </div>
-        <button 
+        <button
           onClick={handleAddStudent}
           disabled={validating || saving}
-          style={{ 
+          style={{
             padding: "0.6rem 2rem",
             backgroundColor: "#28a745",
             color: "white",

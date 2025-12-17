@@ -27,3 +27,8 @@ export async function editStrategicIndicator(id, { threshold, url, categoryName 
     { headers: { "Content-Type": "multipart/form-data" } }
   );
 }
+
+// GET fetch strategic indicators
+export async function fetchStrategicIndicators() {
+  return axios.get("/api/strategicIndicators/fetch");
+}
