@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getAllMetricsCategories, getMetricsByProject, editMetric } from "../../services/MetricsService";
+import { getAllMetricsCategories, getMetricsByProject } from "../../services/MetricsService";
 import { getAllFactorsCategories, getFactorsByProject } from "../../services/FactorsService";
 import { llistarProjectes } from "../../services/ProjectService";
 import MetricsTable from "./MetricsTable";
@@ -38,20 +38,13 @@ function ManageSubjectCategories({ subject, onBack }) {
   useEffect(() => {
     async function fetchAll() {
       setLoading(true);
-
-      // 1. Cargar lista de nombres de equipos desde localStorage
       const teamNamesMapping = JSON.parse(localStorage.getItem('assignatura_teams_mapping')) || {};
       const teamNames = teamNamesMapping[subject] || [];
-
-      // 2. Cargar todos los proyectos y filtrar por nombres de esta asignatura
       const allProjects = await llistarProjectes();
       const teamsObjects = allProjects.filter(p => teamNames.includes(p.name || p.externalId));
       setTeams(teamsObjects);
-
-      // 3. Cargar métricas y factores por cada equipo
       const metricsPromises = teamsObjects.map(async (t) => {
         const response = await getMetricsByProject(t.externalId || t.name);
-        // Enriquecer cada métrica con la info del proyecto
         return response.data.map(metric => ({
           ...metric,
           project: { externalId: t.externalId, name: t.name, id: t.id }
@@ -60,7 +53,6 @@ function ManageSubjectCategories({ subject, onBack }) {
       
       const factorsPromises = teamsObjects.map(async (t) => {
         const response = await getFactorsByProject(t.externalId || t.name);
-        // Enriquecer cada factor con la info del proyecto
         return response.data.map(factor => ({
           ...factor,
           project: { externalId: t.externalId, name: t.name, id: t.id }
@@ -88,8 +80,6 @@ function ManageSubjectCategories({ subject, onBack }) {
 
     fetchAll();
   }, [subject]);
-
-  console.log("Teams for subject:", teams);
 
   if (loading) return <div>Cargando...</div>;
 

@@ -18,9 +18,23 @@ function DeleteProject({ onBack }) {
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this project?")) return;
     try {
+      const projectToDelete = projects.find(p => p.id === id);
+      
       await esborrarProjecte(id);
       setDeleted(id);
       setProjects(projects.filter(p => p.id !== id));
+
+      const mapping = JSON.parse(localStorage.getItem('assignatura_teams_mapping')) || {};
+      
+      Object.keys(mapping).forEach(subject => {
+        mapping[subject] = mapping[subject].filter(
+          teamName => teamName !== projectToDelete.name && teamName !== projectToDelete.externalId
+        );
+        if (mapping[subject].length === 0) delete mapping[subject];
+      });
+      
+      localStorage.setItem('assignatura_teams_mapping', JSON.stringify(mapping));
+      
     } catch {
       setError("Error deleting project");
     }

@@ -18,15 +18,13 @@ export async function getAllFactorsCategories() {
   return axios.get("/api/factors/categories");
 }
 
-//PUT edit factor
-export async function editFactor(id, { threshold, url, categoryName }, project) {
+//PUT edit factor category
+export async function editFactorCategory(id, category, project) {
   const formData = new FormData();
-  formData.append("threshold", threshold ?? "");
-  formData.append("url", url ?? "");
-  formData.append("categoryName", categoryName ?? "");
+  formData.append("category", category ?? "");
 
   return axios.put(
-    `/api/factors/${id}?prj=${encodeURIComponent(project)}`,
+    `/api/factors/${id}/category?prj=${encodeURIComponent(project)}`,
     formData,
     { headers: { "Content-Type": "multipart/form-data" } }
   );

@@ -31,3 +31,11 @@ export async function modificarProjecte(projecte) {
 export async function esborrarProjecte(id) {
   return axios.delete(`/api/projects/${id}`);
 }
+
+//POST - Validate new student
+export async function validarNouEstudiant(data) {
+  const resposta = await axios.post("/api/projects/validate-student", data, {
+    headers: { "Content-Type": "application/json" }
+  });
+  return resposta.data;
+}
