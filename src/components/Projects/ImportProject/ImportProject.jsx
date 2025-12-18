@@ -5,7 +5,7 @@ import ImportResultModal from "./ImportResultModal";
 import { parseTeamsFromRows } from "../../../utils/excelParser";
 import { importarProjectes } from "../../../services/ProjectService";
 
-function ImportProject({ onNextStep }) {
+function ImportProject({ onNextStep, onRefreshStatus }) {
   const [parsedData, setParsedData] = useState([]);
   const [importResult, setImportResult] = useState(null);
 
@@ -23,6 +23,7 @@ function ImportProject({ onNextStep }) {
         type: 'success',
         data: response.data
       });
+      if (onRefreshStatus) onRefreshStatus();
 
       // Clear preview after showing modal
       setParsedData([]);

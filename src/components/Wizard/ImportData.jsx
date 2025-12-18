@@ -3,7 +3,7 @@ import { importMetrics } from '../../services/MetricsService';
 import { importQualityFactors } from '../../services/FactorsService';
 import { fetchStrategicIndicators } from '../../services/StrategicIndicatorsService';
 
-const ImportData = ({ onNext, onBack }) => {
+const ImportData = ({ onNext, onBack, onRefreshStatus }) => {
     // Tracks which steps are done: metrics, factors, indicators
     const [metricsDone, setMetricsDone] = useState(false);
     const [factorsDone, setFactorsDone] = useState(false);
@@ -21,6 +21,7 @@ const ImportData = ({ onNext, onBack }) => {
             await importMetrics();
             addLog("✅ Metrics Imported Successfully.");
             setMetricsDone(true);
+            if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error importing Metrics: ${error.message}`);
         } finally {
@@ -35,6 +36,7 @@ const ImportData = ({ onNext, onBack }) => {
             await importQualityFactors();
             addLog("✅ Quality Factors Imported Successfully.");
             setFactorsDone(true);
+            if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error importing Quality Factors: ${error.message}`);
         } finally {
@@ -49,6 +51,7 @@ const ImportData = ({ onNext, onBack }) => {
             await fetchStrategicIndicators();
             addLog("✅ Strategic Indicators Fetched Successfully.");
             setIndicatorsDone(true);
+            if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error fetching Strategic Indicators: ${error.message}`);
         } finally {
@@ -65,28 +68,28 @@ const ImportData = ({ onNext, onBack }) => {
                 <button
                     className="custom-button"
                     onClick={handleImportMetrics}
-                    disabled={loading !== null || metricsDone}
+                    disabled={loading !== null}
                     style={{ backgroundColor: metricsDone ? '#28a745' : undefined }}
                 >
-                    {loading === 'metrics' ? 'Importing...' : metricsDone ? '✅ Metrics Done' : '1. Import Metrics'}
+                    {loading === 'metrics' ? 'Importing...' : metricsDone ? '✅ Metrics Done' : 'Import Metrics'}
                 </button>
 
                 <button
                     className="custom-button"
                     onClick={handleImportFactors}
-                    disabled={loading !== null || !metricsDone || factorsDone}
+                    disabled={loading !== null}
                     style={{ backgroundColor: factorsDone ? '#28a745' : undefined }}
                 >
-                    {loading === 'factors' ? 'Importing...' : factorsDone ? '✅ Factors Done' : '2. Import Factors'}
+                    {loading === 'factors' ? 'Importing...' : factorsDone ? '✅ Factors Done' : 'Import Factors'}
                 </button>
 
                 <button
                     className="custom-button"
                     onClick={handleFetchIndicators}
-                    disabled={loading !== null || !factorsDone || indicatorsDone}
+                    disabled={loading !== null}
                     style={{ backgroundColor: indicatorsDone ? '#28a745' : undefined }}
                 >
-                    {loading === 'indicators' ? 'Fetching...' : indicatorsDone ? '✅ Indicators Done' : '3. Fetch Indicators'}
+                    {loading === 'indicators' ? 'Fetching...' : indicatorsDone ? '✅ Indicators Done' : 'Fetch Indicators'}
                 </button>
             </div>
 
@@ -99,7 +102,7 @@ const ImportData = ({ onNext, onBack }) => {
 
             <div className="wizard-controls" style={{ marginTop: '2rem' }}>
                 <button className="custom-button secondary" onClick={onBack} disabled={loading !== null}>Back</button>
-                {indicatorsDone && (
+                {metricsDone && factorsDone && indicatorsDone && (
                     <button className="custom-button" onClick={onNext}>Next Step</button>
                 )}
             </div>

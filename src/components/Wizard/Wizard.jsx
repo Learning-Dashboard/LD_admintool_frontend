@@ -3,50 +3,42 @@ import ImportProject from '../Projects/ImportProject/ImportProject';
 import ImportData from './ImportData';
 import AdministrateCategories from '../Categories/AdministrateCategories';
 import WizardImportCategories from './WizardImportCategories';
-import { llistarProjectes } from '../../services/ProjectService';
-import { getMetricsByProject } from '../../services/MetricsService';
+import { getWizardStatus } from '../../services/WizardService';
 import './Wizard.css';
 
 const Wizard = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [hasProjects, setHasProjects] = useState(false);
     const [hasData, setHasData] = useState(false);
+    const [hasCategories, setHasCategories] = useState(false);
 
-    // Initial check and check when entering steps
+    // Initial check on mount
     useEffect(() => {
         checkPrerequisites();
-    }, [currentStep]);
+    }, []);
 
     const checkPrerequisites = async () => {
-        let projectsExist = false;
-        let dataExists = false;
         try {
-            // 1. Check Projects
-            const projects = await llistarProjectes();
-            projectsExist = projects && projects.length > 0;
-            setHasProjects(projectsExist);
+            const status = await getWizardStatus();
 
-            // 2. Check Data (Metrics) if projects exist
-            if (projectsExist) {
-                // Check the first project as a proxy
-                const firstProject = projects[0];
-                const projectId = firstProject.externalId;
-                if (projectId) {
-                    const metricsResponse = await getMetricsByProject(projectId);
-                    // Axios response.data contains the list
-                    if (metricsResponse.data && metricsResponse.data.length > 0) {
-                        dataExists = true;
-                    }
-                }
-            }
-            setHasData(dataExists);
+            setHasProjects(status.hasProjects);
+            setHasData(status.hasData);
 
+            // All three types of categories must exist for Step 3 to be "completed"
+            const categoriesExist = status.hasMetricsCategories &&
+                status.hasFactorsCategories &&
+                status.hasStrategicIndicatorCategories;
+            setHasCategories(categoriesExist);
+
+            return {
+                projectsExist: status.hasProjects,
+                dataExists: status.hasData,
+                categoriesExist
+            };
         } catch (error) {
             console.error("Error checking prerequisites:", error);
-            setHasProjects(false);
-            setHasData(false);
+            return { projectsExist: hasProjects, dataExists: hasData, categoriesExist: hasCategories };
         }
-        return { projectsExist, dataExists };
     };
 
     const steps = [
@@ -78,31 +70,32 @@ const Wizard = () => {
     };
 
     const handleStepClick = async (stepNumber) => {
-        // Re-check before navigation to be sure
-        const { projectsExist, dataExists } = await checkPrerequisites();
-
-        // Step 1 is always accessible
+        // Validation with potential fallback check
         if (stepNumber === 1) {
             setCurrentStep(1);
-            return;
-        }
-
-        if (stepNumber === 2) {
-            if (projectsExist) {
-                setCurrentStep(stepNumber);
-            } else {
-                alert('Please import projects first before accessing Import Data.');
+        } else if (stepNumber === 2) {
+            if (hasProjects) setCurrentStep(2);
+            else {
+                const { projectsExist } = await checkPrerequisites();
+                if (projectsExist) setCurrentStep(2);
+                else alert('Please import projects first.');
             }
         } else if (stepNumber === 3) {
             setCurrentStep(3);
         } else if (stepNumber === 4) {
-            if (projectsExist && dataExists) {
-                setCurrentStep(stepNumber);
+            if (hasProjects && hasData) {
+                setCurrentStep(4);
             } else {
-                if (!projectsExist) alert('Please import projects first before accessing Assign Categories.');
-                else alert('Please import data (Step 2) before accessing Assign Categories.');
+                // Fallback: maybe the data was just imported and state isn't updated yet
+                const { projectsExist, dataExists } = await checkPrerequisites();
+                if (projectsExist && dataExists) setCurrentStep(4);
+                else if (!projectsExist) alert('Please import projects first.');
+                else alert('Please import data (Step 2) first.');
             }
         }
+
+        // Always trigger a background refresh for titles
+        checkPrerequisites();
     };
 
     return (
@@ -111,10 +104,21 @@ const Wizard = () => {
                 {steps.map((step, index) => {
                     const stepNum = index + 1;
                     const isAccessible = canNavigateToStep(stepNum);
+
+                    // Determine completion based on actual data
+                    let isCompleted = false;
+                    if (stepNum === 1) isCompleted = hasProjects;
+                    if (stepNum === 2) isCompleted = hasData;
+                    if (stepNum === 3) isCompleted = hasCategories;
+                    // Step 4 is the final step, no "completed" state needed beyond being on it? 
+                    // Or maybe if some assignments exist? For now, we'll stick to 1, 2, 3.
+
                     return (
                         <div
                             key={index}
-                            className={`step-indicator ${currentStep === stepNum ? 'active' : ''} ${currentStep > stepNum ? 'completed' : ''} ${isAccessible ? 'clickable' : 'disabled'}`}
+                            className={`step-indicator 
+                                ${currentStep === stepNum ? 'active' : (isCompleted ? 'completed' : '')} 
+                                ${isAccessible ? 'clickable' : 'disabled'}`}
                             onClick={() => handleStepClick(stepNum)}
                             style={{ cursor: isAccessible ? 'pointer' : 'not-allowed', opacity: isAccessible ? 1 : 0.5 }}
                         >
@@ -127,21 +131,48 @@ const Wizard = () => {
             <div className="wizard-content">
                 {currentStep === 1 && (
                     <div className="wizard-step">
-                        <ImportProject onNextStep={() => handleStepClick(2)} />
+                        <ImportProject
+                            onNextStep={() => {
+                                if (hasData && hasCategories) handleStepClick(4);
+                                else if (hasData) handleStepClick(3);
+                                else handleStepClick(2);
+                            }}
+                            onRefreshStatus={checkPrerequisites}
+                        />
                     </div>
                 )}
 
                 {currentStep === 2 && (
-                    <ImportData onNext={() => handleStepClick(3)} onBack={() => handleStepClick(1)} />
+                    <ImportData
+                        onNext={() => {
+                            if (hasCategories) handleStepClick(4);
+                            else handleStepClick(3);
+                        }}
+                        onBack={() => handleStepClick(1)}
+                        onRefreshStatus={checkPrerequisites}
+                    />
                 )}
 
                 {currentStep === 3 && (
-                    <WizardImportCategories onNext={() => handleStepClick(4)} onBack={() => handleStepClick(2)} />
+                    <WizardImportCategories
+                        onNext={() => handleStepClick(4)}
+                        onBack={() => {
+                            if (hasProjects) handleStepClick(2);
+                            else handleStepClick(1);
+                        }}
+                        onRefreshStatus={checkPrerequisites}
+                    />
                 )}
 
                 {currentStep === 4 && (
                     <div className="wizard-step">
-                        <AdministrateCategories onBack={() => handleStepClick(3)} />
+                        <AdministrateCategories
+                            onBack={() => {
+                                if (hasCategories) handleStepClick(3);
+                                else handleStepClick(2);
+                            }}
+                            onRefreshStatus={checkPrerequisites}
+                        />
                     </div>
                 )}
             </div>

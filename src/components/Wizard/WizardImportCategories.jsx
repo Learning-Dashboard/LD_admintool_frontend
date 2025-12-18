@@ -4,7 +4,7 @@ import MetricsCategories from "../../assets/MetricsCategories.json";
 import FactorsCategories from "../../assets/FactorsCategories.json";
 import StrategicIndicatorsCategories from "../../assets/StrategicIndicatorsCategories.json";
 
-const WizardImportCategories = ({ onNext, onBack }) => {
+const WizardImportCategories = ({ onNext, onBack, onRefreshStatus }) => {
     const [importResult, setImportResult] = useState("");
     const [loading, setLoading] = useState(false);
 
@@ -15,6 +15,7 @@ const WizardImportCategories = ({ onNext, onBack }) => {
             await importarCategoriesFactors(FactorsCategories);
             await importarCategoriesStrategicIndicators(StrategicIndicatorsCategories);
             setImportResult("Categories imported successfully!");
+            if (onRefreshStatus) onRefreshStatus();
         } catch (err) {
             setImportResult("Error importing: " + err.message);
         } finally {

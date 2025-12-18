@@ -21,7 +21,22 @@ export async function importarCategoriesFactors(categories) {
 ///////////////////////////////////////////////////////// STRATEGIC INDICATORS /////////////////////////////////////////////////////////////////////
 //POST
 export async function importarCategoriesStrategicIndicators(interval) {
-    return axios.post("/api/categories/strategicIndicators", interval, {
-        headers: { "Content-Type": "application/json" }
-    });
+  return axios.post("/api/categories/strategicIndicators", interval, {
+    headers: { "Content-Type": "application/json" }
+  });
+}
+
+//GET all metrics categories
+export async function getAllMetricsCategories() {
+  return axios.get("/api/metrics/categories");
+}
+
+//GET all factors categories
+export async function getAllFactorsCategories() {
+  return axios.get("/api/factors/categories");
+}
+
+//GET all strategic indicators categories
+export async function getAllStrategicIndicatorCategories() {
+  return axios.get("/api/strategicIndicators/categories");
 }
