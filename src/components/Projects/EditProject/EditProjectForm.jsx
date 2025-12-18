@@ -7,7 +7,10 @@ import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
 function EditProjectForm({ project, onDone, onBack }) {
-  const [edited, setEdited] = useState({ ...project });
+  const [edited, setEdited] = useState({
+    ...project,
+    githubToken: project.githubToken || ""
+  });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
   const [newStudent, setNewStudent] = useState({
@@ -25,13 +28,19 @@ function EditProjectForm({ project, onDone, onBack }) {
 
   const handleAddStudent = async () => {
     if (!newStudent.name || !newStudent.githubUsername || !newStudent.taigaUsername) {
-      setMessage({ type: "error", text: "Si us plau, omple tots els camps de l'estudiant" });
+      setMessage({
+        type: "error", text: "Please fill all the fields"
+      });
+      return;
+    }
+
+    if (!edited.githubToken) {
+      setMessage({ type: "error", text: "A GitHub token is required to verify student membership." });
       return;
     }
 
     setValidating(true);
     try {
-      // Validar l'estudiant amb el backend
       const validationResult = await validarNouEstudiant({
         projectId: project.id,
         githubUrl: edited.identities?.GITHUB?.url,
@@ -47,8 +56,8 @@ function EditProjectForm({ project, onDone, onBack }) {
       });
 
       if (validationResult.valid) {
-        // Afegir l'estudiant
-        const students = [...edited.students, {
+        const students = [...(edited.students || []), {
+          id: null, // New student
           name: newStudent.name,
           identities: {
             GITHUB: { username: newStudent.githubUsername },
@@ -56,17 +65,14 @@ function EditProjectForm({ project, onDone, onBack }) {
           }
         }];
         setEdited(prev => ({ ...prev, students }));
-
-        // Netejar el formulari
         setNewStudent({ name: "", githubUsername: "", taigaUsername: "" });
-        setMessage({ type: "success", text: "Estudiant afegit correctament!" });
+        setMessage({ type: "success", text: "Student validated and added to the list!" });
       } else {
-        // Mostrar errors de validació
         const errorMessages = validationResult.errors.join(", ");
-        setMessage({ type: "error", text: `No es pot afegir l'estudiant: ${errorMessages}` });
+        setMessage({ type: "error", text: `Validation failed: ${errorMessages}` });
       }
     } catch (error) {
-      setMessage({ type: "error", text: "Error validant l'estudiant: " + error.message });
+      setMessage({ type: "error", text: "Validation error: " + error.message });
     } finally {
       setValidating(false);
     }
@@ -76,117 +82,164 @@ function EditProjectForm({ project, onDone, onBack }) {
     setSaving(true);
     try {
       await modificarProjecte(edited);
+      setMessage({ type: "info", text: "Changes saved. Updating dashboard data..." });
 
-      // Trigger sequential imports as required when team changes
-      setMessage({ type: "info", text: "Projecte modificat. Actualitzant mètriques..." });
+      // Sequential updates
       await importMetrics();
-
-      setMessage({ type: "info", text: "Projecte modificat. Actualitzant factors..." });
       await importQualityFactors();
-
-      setMessage({ type: "info", text: "Projecte modificat. Actualitzant indicadors..." });
       await fetchStrategicIndicators();
 
-      setMessage({ type: "success", text: "Projecte modificat i dades actualitzades correctament!" });
+      setMessage({ type: "success", text: "Team updated and data refreshed successfully!" });
+      setTimeout(onDone, 1500);
     } catch (error) {
       console.error(error);
-      setMessage({ type: "error", text: "Error modificant el projecte o actualitzant dades!" });
+      setMessage({ type: "error", text: "Error saving changes or updating data!" });
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
-
   return (
-    <div style={{ textAlign: "center" }}>
+    <div className="edit-project-form glass-effect" style={{ boxSizing: 'border-box', margin: '0 auto', padding: '2rem', background: '#1a1d23', borderRadius: '16px', border: '1px solid #333' }}>
       {message && <FeedbackMessage message={message} onClose={() => setMessage(null)} />}
-      <h3>Edit Team: {project.name}</h3>
 
-      <h4>Current Students</h4>
-      <div style={{ display: "flex", justifyContent: "center", gap: "1em", fontWeight: "bold", marginBottom: "0.8em" }}>
-        <span style={{ flex: 1 }}>Name</span>
-        <span style={{ flex: 1 }}>Github</span>
-        <span style={{ flex: 1 }}>Taiga</span>
-        <span style={{ width: "80px" }}>Acció</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+        <h3 style={{ margin: 0, color: '#4dabf7' }}>Edit Team: {project.name}</h3>
+        <button className="back-button" onClick={onBack} disabled={saving}>Back</button>
       </div>
-      {edited.students && edited.students.length > 0 ? (
-        edited.students.map((s, idx) => (
-          <div key={idx} style={{ display: "flex", justifyContent: "center", gap: "1em", marginBottom: "0.7em", alignItems: "center" }}>
-            <span style={{ flex: 1 }}>{s.name}</span>
-            <span style={{ flex: 1 }}>{s.identities?.GITHUB?.username || "-"}</span>
-            <span style={{ flex: 1 }}>{s.identities?.TAIGA?.username || "-"}</span>
-            <button
-              onClick={() => handleRemoveStudent(idx)}
-              disabled={saving}
-              style={{
-                width: "80px",
-                padding: "0.3rem",
-                backgroundColor: "#dc3545",
-                color: "white",
-                border: "none",
-                borderRadius: "3px",
-                cursor: "pointer"
-              }}
-            >
-              Delete
-            </button>
+
+      <section style={{ marginBottom: '2rem', padding: '1.5rem', background: '#23272f', borderRadius: '12px' }}>
+        <h4 style={{ marginTop: 0, marginBottom: '1rem', fontSize: '1rem' }}>Configuration</h4>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <label style={{ fontSize: '0.85rem', color: '#aaa' }}>GitHub Personal Access Token (Required for verification)</label>
+          <input
+            type="password"
+            value={edited.githubToken}
+            onChange={(e) => setEdited({ ...edited, githubToken: e.target.value })}
+            placeholder="ghp_xxxxxxxxxxxx"
+            style={{
+              padding: '0.8rem',
+              background: '#0d1117',
+              border: '1px solid #444',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '0.9rem'
+            }}
+          />
+        </div>
+      </section>
+
+      <section style={{ marginBottom: '2rem' }}>
+        <h4 style={{ marginBottom: '1rem' }}>Current Students</h4>
+        <div style={{ background: '#23272f', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 2fr 1fr', padding: '1rem', background: '#2d333b', fontWeight: 600, fontSize: '0.9rem' }}>
+            <span>Name</span>
+            <span>GitHub</span>
+            <span>Taiga</span>
+            <span style={{ textAlign: 'center' }}>Action</span>
           </div>
-        ))
-      ) : (
-        <div>No students found</div>
-      )}
+          <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+            {edited.students && edited.students.length > 0 ? (
+              edited.students.map((s, idx) => (
+                <div key={idx} style={{
+                  display: 'grid',
+                  gridTemplateColumns: '2fr 2fr 2fr 1fr',
+                  padding: '1rem',
+                  borderTop: '1px solid #333',
+                  alignItems: 'center',
+                  fontSize: '0.9rem'
+                }}>
+                  <span>{s.name}</span>
+                  <span style={{ color: '#cececeff' }}>{s.identities?.GITHUB?.username || "-"}</span>
+                  <span style={{ color: '#cececeff' }}>{s.identities?.TAIGA?.username || "-"}</span>
+                  <div style={{ textAlign: 'center' }}>
+                    <button
+                      onClick={() => handleRemoveStudent(idx)}
+                      disabled={saving}
+                      style={{
+                        width: "80px",
+                        padding: "0.3rem",
+                        backgroundColor: "#dc3545",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "3px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div style={{ padding: '2rem', textAlign: 'center', color: '#666' }}>No students in this team yet.</div>
+            )}
+          </div>
+        </div>
+      </section>
 
-      <hr style={{ margin: "2em 0" }} />
-
-      <h4>Add new student</h4>
-      <div style={{ margin: "1em auto", maxWidth: "600px" }}>
-        <div style={{ display: "flex", gap: "1em", marginBottom: "1em", justifyContent: "center" }}>
-          <input
-            value={newStudent.name}
-            onChange={e => setNewStudent(prev => ({ ...prev, name: e.target.value }))}
-            disabled={validating || saving}
-            placeholder="Student Name"
-            style={{ flex: 1, padding: "0.5rem" }}
-          />
-          <input
-            value={newStudent.githubUsername}
-            onChange={e => setNewStudent(prev => ({ ...prev, githubUsername: e.target.value }))}
-            disabled={validating || saving}
-            placeholder="GitHub Username"
-            style={{ flex: 1, padding: "0.5rem" }}
-          />
-          <input
-            value={newStudent.taigaUsername}
-            onChange={e => setNewStudent(prev => ({ ...prev, taigaUsername: e.target.value }))}
-            disabled={validating || saving}
-            placeholder="Taiga Username"
-            style={{ flex: 1, padding: "0.5rem" }}
-          />
+      <section style={{ padding: '1.5rem', background: '#23272f', borderRadius: '12px', border: '1px dashed #444' }}>
+        <h4 style={{ marginTop: 0, marginBottom: '1.5rem', fontSize: '1rem' }}>Add New Student</h4>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '0.3rem' }}>Full Name</label>
+            <input
+              value={newStudent.name}
+              onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
+              placeholder="e.g. John Doe"
+              className="custom-input"
+              style={{ background: '#0d1117', padding: '0.6rem' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '0.3rem' }}>GitHub User</label>
+            <input
+              value={newStudent.githubUsername}
+              onChange={e => setNewStudent({ ...newStudent, githubUsername: e.target.value })}
+              placeholder="username"
+              className="custom-input"
+              style={{ background: '#0d1117', padding: '0.6rem' }}
+            />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <label style={{ fontSize: '0.75rem', color: '#aaa', marginBottom: '0.3rem' }}>Taiga User</label>
+            <input
+              value={newStudent.taigaUsername}
+              onChange={e => setNewStudent({ ...newStudent, taigaUsername: e.target.value })}
+              placeholder="username"
+              className="custom-input"
+              style={{ background: '#0d1117', padding: '0.6rem' }}
+            />
+          </div>
         </div>
         <button
           onClick={handleAddStudent}
           disabled={validating || saving}
-          style={{
-            padding: "0.6rem 2rem",
-            backgroundColor: "#28a745",
-            color: "white",
-            border: "none",
-            borderRadius: "5px",
-            cursor: validating || saving ? "not-allowed" : "pointer",
-            fontSize: "14px",
-            fontWeight: "bold"
-          }}
+          className="custom-button primary"
+          style={{ width: '100%', padding: '0.8rem', marginTop: '0.5rem', opacity: validating ? 0.7 : 1, marginLeft: 0 }}
         >
-          {validating ? "Validant..." : "Afegir Estudiant"}
+          {validating ? "Verifying Membership..." : "Validate & Add Student"}
+        </button>
+      </section>
+
+      <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
+        <button
+          className="custom-button success"
+          onClick={handleSave}
+          disabled={saving}
+          style={{ flex: 2, padding: '1rem', fontSize: '1rem', marginLeft: 0 }}
+        >
+          {saving ? "Saving Changes..." : "Save and Sync Team"}
+        </button>
+        <button
+          className="custom-button"
+          onClick={onDone}
+          disabled={saving}
+          style={{ flex: 1, padding: '1rem' }}
+        >
+          Cancel
         </button>
       </div>
-
-      <hr style={{ margin: "2em 0" }} />
-
-      <div style={{ marginTop: "2em" }}>
-        <button className="custom-button" onClick={handleSave} disabled={saving}>Save changes</button>
-        <button className="custom-button" onClick={onDone} disabled={saving} style={{ marginLeft: "1em" }}>Cancel</button>
-      </div>
-      <button className="back-button" onClick={onBack}>Back</button>
     </div>
   );
 }

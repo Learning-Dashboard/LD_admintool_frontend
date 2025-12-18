@@ -76,17 +76,17 @@ function ImportProjectPreview({ data, onConfirm, onCancel }) {
                   padding: "0.8rem",
                   borderRadius: "6px"
                 }}>
-                  <h5 style={{ margin: "0 0 0.5rem 0", fontSize: "0.95rem", color: "#eee" }}>{t.name}</h5>
-                  <div style={{ fontSize: "0.8rem", color: "#aaa", marginBottom: "0.6rem" }}>
+                  <h5 style={{ margin: "0 0 0.5rem 0", fontSize: "1.1rem", color: "#eee" }}>{t.name}</h5>
+                  <div style={{ fontSize: "1rem", color: "#aaa", marginBottom: "0.6rem" }}>
                     <div style={{ marginBottom: "0.2rem" }}>Github: {t.identities.GITHUB?.url || "-"}</div>
                     <div>Taiga: {t.identities.TAIGA?.url || "-"}</div>
                   </div>
 
-                  <div style={{ fontSize: "0.8rem" }}>
+                  <div style={{ fontSize: "1rem" }}>
                     <div style={{ fontWeight: "bold", marginBottom: "0.4rem", color: "#999" }}>Students:</div>
                     <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
                       {t.students.map((s, idx) => (
-                        <div key={idx} style={{ paddingLeft: "0.3rem", color: "#aaa", fontSize: "0.75rem" }}>
+                        <div key={idx} style={{ paddingLeft: "0.3rem", color: "#aaa", fontSize: "1rem" }}>
                           {s.name} <span style={{ opacity: 0.85 }}>(Github: {s.identities.GITHUB?.username || "-"} | Taiga: {s.identities.TAIGA?.username || "-"})</span>
                         </div>
                       ))}
