@@ -1,10 +1,10 @@
 export class Team {
-  constructor({ assignatura, teamName, taigaUrl, githubUrl, students }) {
-    this.assignatura = assignatura || '';
+  constructor({ subject, teamName, taigaUrl, githubUrl, students }) {
+    this.subject = subject || '';
     this.externalId = teamName || '';
     this.name = teamName || '';
     this.description = "Imported from AdminTool";
-    this.logo = null;         
+    this.logo = null;
     this.active = true;
     this.backlogId = null;
     this.isGlobal = false;

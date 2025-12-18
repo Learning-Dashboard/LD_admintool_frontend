@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, forwardRef, useImperativeHandle } from "react";
 import { editMetric } from "../../services/MetricsService";
 import FeedbackMessage from "../../utils/FeedbackMessage";
 import CategorySelect, { useCategorySelectOptions } from "./CategorySelect.jsx";
@@ -20,7 +20,7 @@ function MetricRow({ metric, catValue, onChange, onSave, isSaving, selectOptions
           <CategorySelect value={catValue} onChange={onChange} options={selectOptions} />
         </td>
         <td style={{ padding: '0.7em 1.2em' }}>
-          <button disabled={isSaving} onClick={onSave}>
+          <button disabled={isSaving} onClick={onSave} className="custom-button secondary" style={{ padding: '4px 12px' }}>
             {isSaving ? "Saving..." : "Save"}
           </button>
         </td>
@@ -44,7 +44,7 @@ function PatternRow({ metric, catValue, onChange, onSave, isSaving, selectOption
           <CategorySelect value={catValue} onChange={onChange} options={selectOptions} />
         </td>
         <td style={{ padding: '0.7em 1.2em' }}>
-          <button disabled={isSaving} onClick={onSave}>
+          <button disabled={isSaving} onClick={onSave} className="custom-button secondary" style={{ padding: '4px 12px' }}>
             {isSaving ? "Saving..." : "Save"}
           </button>
         </td>
@@ -58,31 +58,41 @@ function PatternRow({ metric, catValue, onChange, onSave, isSaving, selectOption
   );
 }
 
-function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPattern, onPatternSave }) {
+const MetricsTable = forwardRef(({ metrics, allMetrics, allCategories, project, teams, isPattern, onPatternSave, onStatusChange }, ref) => {
   const [catMap, setCatMap] = useState({});
   const [saving, setSaving] = useState({});
   const [message, setMessage] = useState(null);
 
   const selectOptions = useCategorySelectOptions(allCategories);
 
+  useImperativeHandle(ref, () => ({
+    saveAll: async () => {
+      if (isPattern) {
+        await handlePatternSave(true);
+      } else {
+        const promises = metrics.map(m => handleSave(m, true));
+        await Promise.all(promises);
+      }
+    }
+  }));
+
   const getCatValue = id => {
     if (isPattern) {
       if (catMap["_pattern_"]) return catMap["_pattern_"];
-      
+
       const firstMetric = metrics[0];
       if (!firstMetric?.categoryName) return "";
-      
+
       const category = allCategories.find(c => c.name === firstMetric.categoryName);
       if (category?.patternGroup) return JSON.stringify({ patternGroup: category.patternGroup });
       return JSON.stringify({ name: firstMetric.categoryName });
     }
-    
+
     if (catMap[id]) return catMap[id];
     const metric = metrics.find(m => m.id === id);
     if (!metric?.categoryName) return "";
     const category = allCategories.find(c => c.name === metric.categoryName);
     if (category?.patternGroup) {
-      
       return JSON.stringify({ patternGroup: category.patternGroup });
     } else {
       return JSON.stringify({ name: metric.categoryName });
@@ -94,20 +104,20 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
     else setCatMap(c => ({ ...c, [id]: value }));
   };
 
-  const handleSave = async metric => {
+  const handleSave = async (metric, silent = false) => {
     setSaving(s => ({ ...s, [metric.id]: true }));
     const selected = getCatValue(metric.id);
     if (!selected) {
-      setMessage({ type: "error", text: "No category selected!" });
+      if (!silent) setMessage({ type: "error", text: "No category selected!" });
       setSaving(s => ({ ...s, [metric.id]: false }));
       return;
     }
-    
+
     let selectedCat;
     try {
       selectedCat = JSON.parse(selected);
     } catch (err) {
-      setMessage({ type: "error", text: "Invalid category format!" });
+      if (!silent) setMessage({ type: "error", text: "Invalid category format!" });
       setSaving(s => ({ ...s, [metric.id]: false }));
       return;
     }
@@ -118,7 +128,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
         const hasProject = !!m.project;
         const projectId = m.project?.externalId || m.project?.name;
         const matchesTeam = teams && teams.some(t => (t.externalId || t.name) === projectId);
-        
+
         return matchesExternalId && hasProject && matchesTeam;
       });
 
@@ -133,43 +143,34 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
           const found = allCategories.find(
             c => c.patternGroup === selectedCat.patternGroup && c.name.startsWith(`${n} members`)
           );
-          
+
           if (found) {
             categoryToAssign = found.name;
-            console.log(`Pattern category for team ${team.name} (${n} students): ${categoryToAssign}`);
           } else {
-            const available = allCategories
-              .filter(c => c.patternGroup === selectedCat.patternGroup)
-              .map(c => c.name.match(/^\d+/)?.[0])
-              .filter((v, i, a) => a.indexOf(v) === i)
-              .sort((a, b) => a - b);
-            console.warn(`No category found for ${n} members. Available sizes: ${available.join(', ')}`);
-            throw new Error(`No hi ha categoria per ${n} membres. Disponibles: ${available.join(', ')} membres`);
+            throw new Error(`There is no category for ${n} members.`);
           }
         } else {
           categoryToAssign = selectedCat.name;
-          console.log(`Direct category assignment: ${categoryToAssign}`);
         }
-        
-        const body = { categoryName: categoryToAssign };
-        console.log(`Sending PUT to metric ${metricToUpdate.id} with body:`, body, `project: ${metricToUpdate.project.externalId}`);
-        await editMetric(metricToUpdate.id, body, metricToUpdate.project.externalId);
+
+        await editMetric(metricToUpdate.id, { categoryName: categoryToAssign }, metricToUpdate.project.externalId);
       }
-      
-      setMessage({ type: "success", text: `Category saved to ${metricsToUpdate.length} team(s)!` });
+
+      if (!silent) setMessage({ type: "success", text: `Category applied to all team metrics of the subject!` });
+      if (onStatusChange) onStatusChange();
     } catch (err) {
       console.error("Error saving metric category:", err);
-      setMessage({ type: "error", text: err.message || "Error saving!" });
+      if (!silent) setMessage({ type: "error", text: err.message || "Error saving!" });
     }
     setSaving(s => ({ ...s, [metric.id]: false }));
   };
 
-  const handlePatternSave = async () => {
+  const handlePatternSave = async (silent = false) => {
     setSaving(s => ({ ...s, _pattern_: true }));
-    
+
     const selected = getCatValue(metrics[0]?.id);
     if (!selected) {
-      setMessage({ type: "error", text: "No category selected!" });
+      if (!silent) setMessage({ type: "error", text: "No category selected!" });
       setSaving(s => ({ ...s, _pattern_: false }));
       return;
     }
@@ -178,8 +179,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
     try {
       selectedCat = JSON.parse(selected);
     } catch (err) {
-      console.error("Failed to parse selected category:", selected);
-      setMessage({ type: "error", text: "Invalid category format!" });
+      if (!silent) setMessage({ type: "error", text: "Invalid category format!" });
       setSaving(s => ({ ...s, _pattern_: false }));
       return;
     }
@@ -187,54 +187,36 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
     try {
       for (const metricToUpdate of metrics) {
         if (!metricToUpdate.project) continue;
-        
+
         let categoryToAssign;
-        
         if (selectedCat.patternGroup) {
           const team = teams.find(t => (t.externalId || t.name) === metricToUpdate.project.externalId);
-          if (!team) {
-            console.warn(`Team not found for metric ${metricToUpdate.id}`);
-            continue;
-          }
-          
+          if (!team) continue;
+
           const n = team.students?.length || 0;
-          console.log(`Looking for pattern: patternGroup=${selectedCat.patternGroup}, team=${team.name}, students=${n}`);
-          
           const found = allCategories.find(
             c => c.patternGroup === selectedCat.patternGroup && c.name.startsWith(`${n} members`)
           );
-          
+
           if (found) {
             categoryToAssign = found.name;
-            console.log(`Pattern category for team ${team.name} (${n} students): ${categoryToAssign}`);
           } else {
-            const available = allCategories
-              .filter(c => c.patternGroup === selectedCat.patternGroup)
-              .map(c => c.name.match(/^\d+/)?.[0])
-              .filter((v, i, a) => a.indexOf(v) === i)
-              .sort((a, b) => a - b);
-            console.warn(`No category found for ${n} members. Available sizes: ${available.join(', ')}`);
-            throw new Error(`No hi ha categoria per ${n} membres. Disponibles: ${available.join(', ')} membres`);
+            throw new Error(`There is no category for ${n} members.`);
           }
         } else {
           categoryToAssign = selectedCat.name;
         }
-        
-        if (!categoryToAssign) {
-          console.warn(`No category to assign for metric ${metricToUpdate.id}`);
-          continue;
-        }
-        
-        const body = { categoryName: categoryToAssign };
-        console.log(`Saving metric ${metricToUpdate.id} (project: ${metricToUpdate.project.externalId}) with category: ${categoryToAssign}`);
-        await editMetric(metricToUpdate.id, body, metricToUpdate.project.externalId);
+
+        if (!categoryToAssign) continue;
+        await editMetric(metricToUpdate.id, { categoryName: categoryToAssign }, metricToUpdate.project.externalId);
       }
-      
+
       if (onPatternSave) onPatternSave(selected);
-      setMessage({ type: "success", text: "Categoria aplicada a tots els estudiants del patró!" });
+      if (onStatusChange) onStatusChange();
+      if (!silent) setMessage({ type: "success", text: "Category applied to all individual metrics of the subject!" });
     } catch (err) {
       console.error("Error saving pattern category:", err);
-      setMessage({ type: "error", text: err.message || "Error al guardar per tots els estudiants!" });
+      if (!silent) setMessage({ type: "error", text: err.message || "Error saving!" });
     }
     setSaving(s => ({ ...s, _pattern_: false }));
   };
@@ -269,7 +251,7 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
               metric={metrics[0]}
               catValue={getCatValue(metrics[0].id)}
               onChange={e => handleChange("_pattern_", e.target.value)}
-              onSave={handlePatternSave}
+              onSave={() => handlePatternSave()}
               isSaving={!!saving._pattern_}
               selectOptions={selectOptions}
             />
@@ -278,6 +260,6 @@ function MetricsTable({ metrics, allMetrics, allCategories, project, teams, isPa
       </table>
     </div>
   );
-}
+});
 
 export default MetricsTable;

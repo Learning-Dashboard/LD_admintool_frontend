@@ -14,6 +14,11 @@ export async function getStrategicIndicatorsCategoriesList() {
   return axios.get("/api/strategicIndicators/list");
 }
 
+//GET all strategic indicators categories
+export async function getAllStrategicIndicatorCategories() {
+  return axios.get("/api/strategicIndicators/categories");
+}
+
 //PUT edit strategic indicator
 export async function editStrategicIndicator(id, { threshold, url, categoryName }, project) {
   const formData = new FormData();
@@ -26,4 +31,9 @@ export async function editStrategicIndicator(id, { threshold, url, categoryName 
     formData,
     { headers: { "Content-Type": "multipart/form-data" } }
   );
+}
+
+// GET fetch strategic indicators
+export async function fetchStrategicIndicators() {
+  return axios.get("/api/strategicIndicators/fetch");
 }
