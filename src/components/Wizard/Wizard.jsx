@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ImportProject from '../Projects/ImportProject/ImportProject';
 import ImportData from './ImportData';
 import AdministrateCategories from '../Categories/AdministrateCategories';
@@ -11,35 +11,30 @@ const Wizard = () => {
     const [hasProjects, setHasProjects] = useState(false);
     const [hasData, setHasData] = useState(false);
     const [hasCategories, setHasCategories] = useState(false);
+    const [sessionCompletedSteps, setSessionCompletedSteps] = useState(new Set());
 
-    // Initial check on mount
-    useEffect(() => {
-        checkPrerequisites();
-    }, []);
+    const markStepAsCompleted = (stepNum) => {
+        setSessionCompletedSteps(prev => new Set([...prev, stepNum]));
+    };
 
-    const checkPrerequisites = async () => {
+    const checkPrerequisites = useCallback(async () => {
         try {
             const status = await getWizardStatus();
-
             setHasProjects(status.hasProjects);
             setHasData(status.hasData);
-
-            // All three types of categories must exist for Step 3 to be "completed"
-            const categoriesExist = status.hasMetricsCategories &&
+            setHasCategories(
+                status.hasMetricsCategories &&
                 status.hasFactorsCategories &&
-                status.hasStrategicIndicatorCategories;
-            setHasCategories(categoriesExist);
-
-            return {
-                projectsExist: status.hasProjects,
-                dataExists: status.hasData,
-                categoriesExist
-            };
+                status.hasStrategicIndicatorCategories
+            );
         } catch (error) {
-            console.error("Error checking prerequisites:", error);
-            return { projectsExist: hasProjects, dataExists: hasData, categoriesExist: hasCategories };
+            console.error('Error checking prerequisites:', error);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        checkPrerequisites();
+    }, [checkPrerequisites]);
 
     const steps = [
         { title: 'Import Projects' },
@@ -48,53 +43,31 @@ const Wizard = () => {
         { title: 'Assign Categories' }
     ];
 
-    // Check if we can navigate to a specific step
-    const canNavigateToStep = (stepNumber) => {
-        // Step 1 is always accessible
-        if (stepNumber === 1) return true;
-
-        // Step 2 (Import Data) requires teams in BD
-        if (stepNumber === 2) {
-            return hasProjects;
-        }
-
-        // Steps 3 (Import Categories) is always accessible (categories can be imported anytime)
-        if (stepNumber === 3) return true;
-
-        // Step 4 (Assign Categories) requires projects AND data (metrics)
-        if (stepNumber === 4) {
-            return hasProjects && hasData;
-        }
-
-        return true;
+    const canNavigateToStep = (stepNum) => {
+        if (stepNum === 1) return true;
+        if (stepNum === 2) return hasProjects;
+        if (stepNum === 3) return hasProjects;
+        if (stepNum === 4) return hasProjects && hasData && hasCategories;
+        return false;
     };
 
-    const handleStepClick = async (stepNumber) => {
-        // Validation with potential fallback check
-        if (stepNumber === 1) {
-            setCurrentStep(1);
-        } else if (stepNumber === 2) {
-            if (hasProjects) setCurrentStep(2);
-            else {
-                const { projectsExist } = await checkPrerequisites();
-                if (projectsExist) setCurrentStep(2);
-                else alert('Please import projects first.');
-            }
-        } else if (stepNumber === 3) {
-            setCurrentStep(3);
-        } else if (stepNumber === 4) {
-            if (hasProjects && hasData) {
-                setCurrentStep(4);
-            } else {
-                // Fallback: maybe the data was just imported and state isn't updated yet
-                const { projectsExist, dataExists } = await checkPrerequisites();
-                if (projectsExist && dataExists) setCurrentStep(4);
+    const handleStepClick = async (stepNum) => {
+        if (canNavigateToStep(stepNum)) {
+            setCurrentStep(stepNum);
+        } else {
+            const status = await getWizardStatus();
+            const projectsExist = status.hasProjects;
+            const dataExists = status.hasData;
+            const catsExist = status.hasMetricsCategories && status.hasFactorsCategories && status.hasStrategicIndicatorCategories;
+
+            if (stepNum === 2 || stepNum === 3) {
+                if (!projectsExist) alert('Please import projects first.');
+            } else if (stepNum === 4) {
+                if (!catsExist) alert('Please import categories (Step 3) first.');
                 else if (!projectsExist) alert('Please import projects first.');
                 else alert('Please import data (Step 2) first.');
             }
         }
-
-        // Always trigger a background refresh for titles
         checkPrerequisites();
     };
 
@@ -104,14 +77,7 @@ const Wizard = () => {
                 {steps.map((step, index) => {
                     const stepNum = index + 1;
                     const isAccessible = canNavigateToStep(stepNum);
-
-                    // Determine completion based on actual data
-                    let isCompleted = false;
-                    if (stepNum === 1) isCompleted = hasProjects;
-                    if (stepNum === 2) isCompleted = hasData;
-                    if (stepNum === 3) isCompleted = hasCategories;
-                    // Step 4 is the final step, no "completed" state needed beyond being on it? 
-                    // Or maybe if some assignments exist? For now, we'll stick to 1, 2, 3.
+                    const isCompleted = sessionCompletedSteps.has(stepNum);
 
                     return (
                         <div
@@ -132,38 +98,30 @@ const Wizard = () => {
                 {currentStep === 1 && (
                     <div className="wizard-step">
                         <ImportProject
-                            onNextStep={() => {
-                                if (hasData && hasCategories) handleStepClick(4);
-                                else if (hasData) handleStepClick(3);
-                                else handleStepClick(2);
-                            }}
+                            onNextStep={() => handleStepClick(2)}
                             onRefreshStatus={checkPrerequisites}
+                            onCompleted={() => markStepAsCompleted(1)}
                         />
                     </div>
                 )}
-
                 {currentStep === 2 && (
-                    <ImportData
-                        onNext={() => {
-                            if (hasCategories) handleStepClick(4);
-                            else handleStepClick(3);
-                        }}
-                        onBack={() => handleStepClick(1)}
-                        onRefreshStatus={checkPrerequisites}
-                    />
+                    <div className="wizard-step">
+                        <ImportData
+                            onNextStep={() => handleStepClick(3)}
+                            onRefreshStatus={checkPrerequisites}
+                            onCompleted={() => markStepAsCompleted(2)}
+                        />
+                    </div>
                 )}
-
                 {currentStep === 3 && (
-                    <WizardImportCategories
-                        onNext={() => handleStepClick(4)}
-                        onBack={() => {
-                            if (hasProjects) handleStepClick(2);
-                            else handleStepClick(1);
-                        }}
-                        onRefreshStatus={checkPrerequisites}
-                    />
+                    <div className="wizard-step">
+                        <WizardImportCategories
+                            onNext={() => handleStepClick(4)}
+                            onRefreshStatus={checkPrerequisites}
+                            onCompleted={() => markStepAsCompleted(3)}
+                        />
+                    </div>
                 )}
-
                 {currentStep === 4 && (
                     <div className="wizard-step">
                         <AdministrateCategories
@@ -172,6 +130,7 @@ const Wizard = () => {
                                 else handleStepClick(2);
                             }}
                             onRefreshStatus={checkPrerequisites}
+                            onCompleted={() => markStepAsCompleted(4)}
                         />
                     </div>
                 )}

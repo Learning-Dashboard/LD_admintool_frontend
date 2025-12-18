@@ -3,7 +3,7 @@ import ManageSubjectCategories from "./ManageSubjectCategories";
 import { llistarProjectes } from "../../services/ProjectService";
 import '../../styles.css';
 
-function AdministrateCategories({ onBack }) {
+function AdministrateCategories({ onBack, onRefreshStatus, onCompleted }) {
   const [mapping, setMapping] = useState({});
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -76,6 +76,8 @@ function AdministrateCategories({ onBack }) {
     <ManageSubjectCategories
       subject={selectedSubject}
       onBack={() => setSelectedSubject(null)}
+      onRefreshStatus={onRefreshStatus}
+      onCompleted={onCompleted}
     />
   );
 }

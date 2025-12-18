@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { getAllMetricsCategories, getMetricsByProject } from "../../services/MetricsService";
 import { getAllFactorsCategories, getFactorsByProject } from "../../services/FactorsService";
 import { llistarProjectes } from "../../services/ProjectService";
 import MetricsTable from "./MetricsTable";
 import FactorsTable from "./FactorsTable";
+import FeedbackMessage from "../../utils/FeedbackMessage";
 import "../../styles.css";
 
 function getStudentPattern(externalId) {
@@ -26,7 +27,7 @@ function groupByScopeAndPattern(items) {
   return { team: Object.values(team), individual };
 }
 
-function ManageSubjectCategories({ subject, onBack }) {
+function ManageSubjectCategories({ subject, onBack, onRefreshStatus, onCompleted }) {
   const [metrics, setMetrics] = useState([]);
   const [factors, setFactors] = useState([]);
   const [metricCategories, setMetricCategories] = useState([]);
@@ -34,6 +35,17 @@ function ManageSubjectCategories({ subject, onBack }) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("metrics");
   const [teams, setTeams] = useState([]);
+  const [isSavingAll, setIsSavingAll] = useState(false);
+  const [message, setMessage] = useState(null);
+
+  const teamMetricsRef = useRef();
+  const patternRefs = useRef({});
+  const factorsRef = useRef();
+
+  // Helper to mark step 4 as completed in session
+  const notifyCompletion = () => {
+    if (onCompleted) onCompleted();
+  };
 
   useEffect(() => {
     async function fetchAll() {
@@ -79,7 +91,45 @@ function ManageSubjectCategories({ subject, onBack }) {
     fetchAll();
   }, [subject]);
 
-  if (loading) return <div>Cargando...</div>;
+  const handleSaveAll = async () => {
+    setIsSavingAll(true);
+    try {
+      if (activeTab === "metrics") {
+        const promises = [];
+        if (teamMetricsRef.current) promises.push(teamMetricsRef.current.saveAll());
+        Object.values(patternRefs.current).forEach(ref => {
+          if (ref) promises.push(ref.saveAll());
+        });
+        await Promise.all(promises);
+        setMessage({
+          type: "success",
+          text: `All metrics for subject: "${subject}" assigned correctly`
+        });
+      } else {
+        if (factorsRef.current) {
+          await factorsRef.current.saveAll();
+          setMessage({
+            type: "success",
+            text: `All factors for subject: "${subject}" assigned correctly`
+          });
+        }
+      }
+      notifyCompletion();
+      if (onRefreshStatus) onRefreshStatus();
+    } catch (err) {
+      console.error("Error in Save All:", err);
+      setMessage({ type: "error", text: "Error saving all categories!" });
+    } finally {
+      setIsSavingAll(false);
+    }
+  };
+
+  const handleStatusChange = () => {
+    notifyCompletion();
+    if (onRefreshStatus) onRefreshStatus();
+  };
+
+  if (loading) return <div style={{ textAlign: "center", padding: "2rem" }}>Cargando...</div>;
 
   const groupedMetrics = groupByScopeAndPattern(metrics);
   const dedupedFactors = Object.values(
@@ -91,7 +141,19 @@ function ManageSubjectCategories({ subject, onBack }) {
 
   return (
     <div>
-      <h3>Manage Categories for {subject}</h3>
+      {message && <FeedbackMessage message={message} onClose={() => setMessage(null)} />}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+        <h3>Assign Categories for {subject}</h3>
+        <button
+          className="custom-button"
+          onClick={handleSaveAll}
+          disabled={isSavingAll}
+          style={{ background: "#4caf50", borderColor: "#4caf50" }}
+        >
+          {isSavingAll ? "Saving All..." : "Save All"}
+        </button>
+      </div>
+
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", gap: "2em", marginBottom: "2em" }}>
         <button
           className={`custom-button${activeTab === "metrics" ? " active" : ""}`}
@@ -111,25 +173,29 @@ function ManageSubjectCategories({ subject, onBack }) {
 
       {activeTab === "metrics" && (
         <div>
-          <h4>Mètriques d'equip</h4>
+          <h4>Team metrics</h4>
           <MetricsTable
+            ref={teamMetricsRef}
             metrics={groupedMetrics.team}
             allMetrics={metrics}
             allCategories={metricCategories}
             project={subject}
             teams={teams}
+            onStatusChange={handleStatusChange}
           />
 
-          <h4>Mètriques individuals</h4>
+          <h4>Individual metrics</h4>
           {Object.entries(groupedMetrics.individual).map(([pattern, metricsArr]) => (
             <MetricsTable
               key={pattern}
+              ref={el => patternRefs.current[pattern] = el}
               metrics={metricsArr}
               allMetrics={metrics}
               allCategories={metricCategories}
               project={subject}
               teams={teams}
               isPattern={true}
+              onStatusChange={handleStatusChange}
             />
           ))}
         </div>
@@ -139,11 +205,13 @@ function ManageSubjectCategories({ subject, onBack }) {
         <div>
           <h4>Factors</h4>
           <FactorsTable
+            ref={factorsRef}
             factors={dedupedFactors}
             allFactors={factors}
             allCategories={factorCategories}
             project={subject}
             teams={teams}
+            onStatusChange={handleStatusChange}
           />
         </div>
       )}

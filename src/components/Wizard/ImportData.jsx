@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { importMetrics } from '../../services/MetricsService';
 import { importQualityFactors } from '../../services/FactorsService';
 import { fetchStrategicIndicators } from '../../services/StrategicIndicatorsService';
 
-const ImportData = ({ onNext, onBack, onRefreshStatus }) => {
+const ImportData = ({ onNext, onBack, onRefreshStatus, onCompleted }) => {
     // Tracks which steps are done: metrics, factors, indicators
     const [metricsDone, setMetricsDone] = useState(false);
     const [factorsDone, setFactorsDone] = useState(false);
@@ -13,6 +13,12 @@ const ImportData = ({ onNext, onBack, onRefreshStatus }) => {
     const [logs, setLogs] = useState([]);
 
     const addLog = (msg) => setLogs(prev => [...prev, msg]);
+
+    useEffect(() => {
+        if (metricsDone && factorsDone && indicatorsDone) {
+            if (onCompleted) onCompleted();
+        }
+    }, [metricsDone, factorsDone, indicatorsDone, onCompleted]);
 
     const handleImportMetrics = async () => {
         setLoading('metrics');
