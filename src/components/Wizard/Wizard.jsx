@@ -46,8 +46,8 @@ const Wizard = () => {
     const canNavigateToStep = (stepNum) => {
         if (stepNum === 1) return true;
         if (stepNum === 2) return hasProjects;
-        if (stepNum === 3) return hasProjects;
-        if (stepNum === 4) return hasProjects && hasData && hasCategories;
+        if (stepNum === 3) return true;
+        if (stepNum === 4) return hasProjects && hasData;
         return false;
     };
 
@@ -58,14 +58,12 @@ const Wizard = () => {
             const status = await getWizardStatus();
             const projectsExist = status.hasProjects;
             const dataExists = status.hasData;
-            const catsExist = status.hasMetricsCategories && status.hasFactorsCategories && status.hasStrategicIndicatorCategories;
 
-            if (stepNum === 2 || stepNum === 3) {
+            if (stepNum === 2) {
                 if (!projectsExist) alert('Please import projects first.');
             } else if (stepNum === 4) {
-                if (!catsExist) alert('Please import categories (Step 3) first.');
-                else if (!projectsExist) alert('Please import projects first.');
-                else alert('Please import data (Step 2) first.');
+                if (!projectsExist) alert('Please import projects first.');
+                else if (!dataExists) alert('Please import data (Step 2) first.');
             }
         }
         checkPrerequisites();
@@ -107,7 +105,8 @@ const Wizard = () => {
                 {currentStep === 2 && (
                     <div className="wizard-step">
                         <ImportData
-                            onNextStep={() => handleStepClick(3)}
+                            onNext={() => handleStepClick(3)}
+                            onBack={() => handleStepClick(1)}
                             onRefreshStatus={checkPrerequisites}
                             onCompleted={() => markStepAsCompleted(2)}
                         />
@@ -117,6 +116,7 @@ const Wizard = () => {
                     <div className="wizard-step">
                         <WizardImportCategories
                             onNext={() => handleStepClick(4)}
+                            onBack={() => handleStepClick(2)}
                             onRefreshStatus={checkPrerequisites}
                             onCompleted={() => markStepAsCompleted(3)}
                         />
