@@ -60,8 +60,14 @@ function EditProjectForm({ project, onDone, onBack }) {
           id: null, // New student
           name: newStudent.name,
           identities: {
-            GITHUB: { username: newStudent.githubUsername },
-            TAIGA: { username: newStudent.taigaUsername }
+            GITHUB: { 
+              dataSource: "GITHUB",
+              username: newStudent.githubUsername 
+            },
+            TAIGA: { 
+              dataSource: "TAIGA",
+              username: newStudent.taigaUsername 
+            }
           }
         }];
         setEdited(prev => ({ ...prev, students }));
