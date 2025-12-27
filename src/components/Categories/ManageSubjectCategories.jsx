@@ -27,7 +27,7 @@ function groupByScopeAndPattern(items) {
   return { team: Object.values(team), individual };
 }
 
-function ManageSubjectCategories({ subject, onBack, onRefreshStatus, onCompleted }) {
+function ManageSubjectCategories({ subject, onBack, onRefreshStatus, onCompleted, onMissingData }) {
   const [metrics, setMetrics] = useState([]);
   const [factors, setFactors] = useState([]);
   const [metricCategories, setMetricCategories] = useState([]);
@@ -91,6 +91,14 @@ function ManageSubjectCategories({ subject, onBack, onRefreshStatus, onCompleted
     fetchAll();
   }, [subject]);
 
+  // Validation Redirect
+  useEffect(() => {
+    if (!loading && (!metrics || metrics.length === 0)) {
+      alert(`No metrics found for subject: ${subject}. Redirecting to Import Data...`);
+      if (onMissingData) onMissingData();
+    }
+  }, [loading, metrics, subject, onMissingData]);
+
   const handleSaveAll = async () => {
     setIsSavingAll(true);
     try {
@@ -130,6 +138,17 @@ function ManageSubjectCategories({ subject, onBack, onRefreshStatus, onCompleted
   };
 
   if (loading) return <div style={{ textAlign: "center", padding: "2rem" }}>Cargando...</div>;
+
+  // New Validation
+  if (!metrics || metrics.length === 0) {
+    return (
+      <div style={{ padding: "2rem", textAlign: "center" }}>
+        <h3 style={{ color: "#ff4d4f" }}>No metrics found for subject: {subject}</h3>
+        <p>Please go back and run "Import Data" first.</p>
+        <button className="back-button" onClick={onBack}>Back</button>
+      </div>
+    );
+  }
 
   const groupedMetrics = groupByScopeAndPattern(metrics);
   const dedupedFactors = Object.values(

@@ -3,7 +3,8 @@ import ManageSubjectCategories from "./ManageSubjectCategories";
 import { llistarProjectes } from "../../services/ProjectService";
 import '../../styles.css';
 
-function AdministrateCategories({ onBack, onRefreshStatus, onCompleted }) {
+function AdministrateCategories({ onBack, onRefreshStatus, onCompleted, onMissingData }) {
+
   const [mapping, setMapping] = useState({});
   const [selectedSubject, setSelectedSubject] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,6 +79,7 @@ function AdministrateCategories({ onBack, onRefreshStatus, onCompleted }) {
       onBack={() => setSelectedSubject(null)}
       onRefreshStatus={onRefreshStatus}
       onCompleted={onCompleted}
+      onMissingData={onMissingData}
     />
   );
 }

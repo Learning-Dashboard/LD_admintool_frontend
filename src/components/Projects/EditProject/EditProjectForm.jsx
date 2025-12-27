@@ -21,9 +21,19 @@ function EditProjectForm({ project, onDone, onBack }) {
   const [validating, setValidating] = useState(false);
 
   const handleRemoveStudent = (idx) => {
-    const students = [...edited.students];
-    students.splice(idx, 1);
-    setEdited(prev => ({ ...prev, students }));
+    setEdited(prev => {
+      const students = [...prev.students];
+      students[idx] = { ...students[idx], markedForDeletion: true };
+      return { ...prev, students };
+    });
+  };
+
+  const handleUndoDelete = (idx) => {
+    setEdited(prev => {
+      const students = [...prev.students];
+      students[idx] = { ...students[idx], markedForDeletion: false };
+      return { ...prev, students };
+    });
   };
 
   const handleAddStudent = async () => {
@@ -60,13 +70,13 @@ function EditProjectForm({ project, onDone, onBack }) {
           id: null, // New student
           name: newStudent.name,
           identities: {
-            GITHUB: { 
+            GITHUB: {
               dataSource: "GITHUB",
-              username: newStudent.githubUsername 
+              username: newStudent.githubUsername
             },
-            TAIGA: { 
+            TAIGA: {
               dataSource: "TAIGA",
-              username: newStudent.taigaUsername 
+              username: newStudent.taigaUsername
             }
           }
         }];
@@ -87,7 +97,10 @@ function EditProjectForm({ project, onDone, onBack }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await modificarProjecte(edited);
+      // Filter out students marked for deletion
+      const studentsToSend = edited.students.filter(s => !s.markedForDeletion);
+
+      await modificarProjecte({ ...edited, students: studentsToSend });
       setMessage({ type: "info", text: "Changes saved. Updating dashboard data..." });
 
       // Sequential updates
@@ -99,7 +112,8 @@ function EditProjectForm({ project, onDone, onBack }) {
       setTimeout(onDone, 1500);
     } catch (error) {
       console.error(error);
-      setMessage({ type: "error", text: "Error saving changes or updating data!" });
+      const errorMessage = error.response?.data || error.message || "Error saving changes or updating data!";
+      setMessage({ type: "error", text: errorMessage });
     } finally {
       setSaving(false);
     }
@@ -153,27 +167,48 @@ function EditProjectForm({ project, onDone, onBack }) {
                   padding: '1rem',
                   borderTop: '1px solid #333',
                   alignItems: 'center',
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  opacity: s.markedForDeletion ? 0.4 : 1,
+                  textDecoration: s.markedForDeletion ? 'line-through' : 'none',
+                  background: s.markedForDeletion ? '#3a3a3a' : 'transparent'
                 }}>
-                  <span>{s.name}</span>
+                  <span>{s.name} {s.markedForDeletion && <i style={{ fontSize: '0.8em', color: '#ff6b6b' }}>(Pending Delete)</i>}</span>
                   <span style={{ color: '#cececeff' }}>{s.identities?.GITHUB?.username || "-"}</span>
                   <span style={{ color: '#cececeff' }}>{s.identities?.TAIGA?.username || "-"}</span>
                   <div style={{ textAlign: 'center' }}>
-                    <button
-                      onClick={() => handleRemoveStudent(idx)}
-                      disabled={saving}
-                      style={{
-                        width: "80px",
-                        padding: "0.3rem",
-                        backgroundColor: "#dc3545",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "3px",
-                        cursor: "pointer"
-                      }}
-                    >
-                      Delete
-                    </button>
+                    {s.markedForDeletion ? (
+                      <button
+                        onClick={() => handleUndoDelete(idx)}
+                        disabled={saving}
+                        style={{
+                          width: "80px",
+                          padding: "0.3rem",
+                          backgroundColor: "#f0ad4e",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Undo
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleRemoveStudent(idx)}
+                        disabled={saving}
+                        style={{
+                          width: "80px",
+                          padding: "0.3rem",
+                          backgroundColor: "#dc3545",
+                          color: "white",
+                          border: "none",
+                          borderRadius: "3px",
+                          cursor: "pointer"
+                        }}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
               ))

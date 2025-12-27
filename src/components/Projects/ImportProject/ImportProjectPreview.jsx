@@ -58,7 +58,7 @@ function ImportProjectPreview({ data, onConfirm, onCancel }) {
                   GitHub Token: <span style={{ color: "red" }}>*</span>
                 </label>
                 <input
-                  type="text"
+                  type="password"
                   value={tokens[subject] || ""}
                   onChange={(e) => handleTokenChange(subject, e.target.value)}
                   placeholder={`Token for ${subject}`}

@@ -131,6 +131,7 @@ const Wizard = () => {
                             }}
                             onRefreshStatus={checkPrerequisites}
                             onCompleted={() => markStepAsCompleted(4)}
+                            onMissingData={() => handleStepClick(2)}
                         />
                     </div>
                 )}

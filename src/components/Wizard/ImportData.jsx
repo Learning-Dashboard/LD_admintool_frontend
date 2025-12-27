@@ -8,107 +8,99 @@ const ImportData = ({ onNext, onBack, onRefreshStatus, onCompleted }) => {
     const [metricsDone, setMetricsDone] = useState(false);
     const [factorsDone, setFactorsDone] = useState(false);
     const [indicatorsDone, setIndicatorsDone] = useState(false);
+    const [allDone, setAllDone] = useState(false);
 
-    const [loading, setLoading] = useState(null); // 'metrics', 'factors', 'indicators', or null
+    const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState([]);
 
     const addLog = (msg) => setLogs(prev => [...prev, msg]);
 
     useEffect(() => {
         if (metricsDone && factorsDone && indicatorsDone) {
+            setAllDone(true);
             if (onCompleted) onCompleted();
         }
     }, [metricsDone, factorsDone, indicatorsDone, onCompleted]);
 
-    const handleImportMetrics = async () => {
-        setLoading('metrics');
-        addLog("Importing Metrics...");
+    const handleImportData = async () => {
+        setLoading(true);
+        setLogs([]); // Clear previous logs
+        setMetricsDone(false);
+        setFactorsDone(false);
+        setIndicatorsDone(false);
+        setAllDone(false);
+
+        // Step 1: Metrics
         try {
+            addLog("🚀 Starting Import Process...");
+            addLog("📥 Importing Metrics...");
             await importMetrics();
             addLog("✅ Metrics Imported Successfully.");
             setMetricsDone(true);
             if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error importing Metrics: ${error.message}`);
-        } finally {
-            setLoading(null);
+            setLoading(false);
+            return; // Stop on error
         }
-    };
 
-    const handleImportFactors = async () => {
-        setLoading('factors');
-        addLog("Importing Quality Factors...");
+        // Step 2: Factors
         try {
+            addLog("📥 Importing Quality Factors...");
             await importQualityFactors();
             addLog("✅ Quality Factors Imported Successfully.");
             setFactorsDone(true);
             if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error importing Quality Factors: ${error.message}`);
-        } finally {
-            setLoading(null);
+            setLoading(false);
+            return; // Stop on error
         }
-    };
 
-    const handleFetchIndicators = async () => {
-        setLoading('indicators');
-        addLog("Fetching Strategic Indicators...");
+        // Step 3: Indicators
         try {
+            addLog("📥 Fetching Strategic Indicators...");
             await fetchStrategicIndicators();
             addLog("✅ Strategic Indicators Fetched Successfully.");
             setIndicatorsDone(true);
             if (onRefreshStatus) onRefreshStatus();
         } catch (error) {
             addLog(`❌ Error fetching Strategic Indicators: ${error.message}`);
-        } finally {
-            setLoading(null);
+            setLoading(false);
+            return; // Stop on error
         }
+
+        addLog("🎉 All Data Imported Successfully!");
+        setLoading(false);
     };
 
     return (
         <div className="wizard-step import-data-step">
             <h3>Step 2: Import Data</h3>
-            <p>Click each button in order to import Metrics, Quality Factors, and Strategic Indicators.</p>
+            <p>Click the button below to import Metrics, Quality Factors, and Strategic Indicators sequentially.</p>
 
             <div className="import-controls" style={{ display: 'flex', justifyContent: 'center', gap: '1rem', marginTop: '2rem', flexWrap: 'wrap' }}>
                 <button
                     className="custom-button"
-                    onClick={handleImportMetrics}
-                    disabled={loading !== null}
-                    style={{ backgroundColor: metricsDone ? '#28a745' : undefined }}
+                    onClick={handleImportData}
+                    disabled={loading || allDone}
+                    style={{ backgroundColor: allDone ? '#28a745' : loading ? '#6c757d' : undefined, minWidth: '200px' }}
                 >
-                    {loading === 'metrics' ? 'Importing...' : metricsDone ? '✅ Metrics Done' : 'Import Metrics'}
-                </button>
-
-                <button
-                    className="custom-button"
-                    onClick={handleImportFactors}
-                    disabled={loading !== null}
-                    style={{ backgroundColor: factorsDone ? '#28a745' : undefined }}
-                >
-                    {loading === 'factors' ? 'Importing...' : factorsDone ? '✅ Factors Done' : 'Import Factors'}
-                </button>
-
-                <button
-                    className="custom-button"
-                    onClick={handleFetchIndicators}
-                    disabled={loading !== null}
-                    style={{ backgroundColor: indicatorsDone ? '#28a745' : undefined }}
-                >
-                    {loading === 'indicators' ? 'Fetching...' : indicatorsDone ? '✅ Indicators Done' : 'Fetch Indicators'}
+                    {loading ? 'Importing Data...' : allDone ? '✅ Import Complete' : 'Import Data'}
                 </button>
             </div>
 
-            <div className="import-logs" style={{ marginTop: '2rem', padding: '1rem', borderRadius: '4px', height: '200px', overflowY: 'auto' }}>
-                {logs.length === 0 && <div style={{ color: '#888' }}>Logs will appear here...</div>}
+            <div className="import-logs" style={{ marginTop: '2rem', padding: '1rem', borderRadius: '4px', height: '200px', overflowY: 'auto', backgroundColor: '#f8f9fa', border: '1px solid #dee2e6' }}>
+                {logs.length === 0 && <div style={{ color: '#888', fontStyle: 'italic' }}>Logs will appear here...</div>}
                 {logs.map((log, idx) => (
-                    <div key={idx} className="log-entry">{log}</div>
+                    <div key={idx} className="log-entry" style={{ marginBottom: '4px', fontSize: '0.9rem' }}>{log}</div>
                 ))}
+                {loading && <div className="log-entry" style={{ fontStyle: 'italic', color: '#007bff' }}>Processing...</div>}
             </div>
 
             <div className="wizard-controls" style={{ marginTop: '2rem' }}>
-                <button className="custom-button secondary" onClick={onBack} disabled={loading !== null}>Back</button>
-                {metricsDone && factorsDone && indicatorsDone && (
+                <button className="custom-button secondary" onClick={onBack} disabled={loading}>Back</button>
+                {allDone && (
                     <button className="custom-button" onClick={onNext}>Next Step</button>
                 )}
             </div>

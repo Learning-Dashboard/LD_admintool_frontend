@@ -13,13 +13,13 @@ function MetricRow({ metric, catValue, onChange, onSave, isSaving, selectOptions
   return (
     <>
       <tr>
-        <td style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>{metric.externalId || metric.id}</td>
-        <td style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>{metric.name}</td>
-        <td style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>{metric.description}</td>
-        <td style={{ padding: '0.7em 1.2em' }}>
-          <CategorySelect value={catValue} onChange={onChange} options={selectOptions} />
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box", wordBreak: 'break-word' }}>{metric.externalId || metric.id}</td>
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box", wordBreak: 'break-word' }}>{metric.name}</td>
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box", wordBreak: 'break-word' }}>{metric.description}</td>
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box" }}>
+          <CategorySelect value={catValue} onChange={onChange} options={selectOptions} style={{ width: "100%" }} />
         </td>
-        <td style={{ padding: '0.7em 1.2em' }}>
+        <td style={{ padding: '0.7em 1.2em', boxSizing: "border-box" }}>
           <button disabled={isSaving} onClick={onSave} className="custom-button secondary" style={{ padding: '4px 12px' }}>
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -38,12 +38,12 @@ function PatternRow({ metric, catValue, onChange, onSave, isSaving, selectOption
   return (
     <>
       <tr>
-        <td style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>{metric.externalId.replace(/_.+$/, "_student")}</td>
-        <td style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>{metric.description}</td>
-        <td style={{ padding: '0.7em 1.2em' }}>
-          <CategorySelect value={catValue} onChange={onChange} options={selectOptions} />
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box", wordBreak: 'break-word' }}>{metric.externalId.replace(/_.+$/, "_student")}</td>
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box", wordBreak: 'break-word' }}>{metric.description}</td>
+        <td style={{ padding: '0.7em 1.2em', textAlign: 'left', boxSizing: "border-box" }}>
+          <CategorySelect value={catValue} onChange={onChange} options={selectOptions} style={{ width: "100%" }} />
         </td>
-        <td style={{ padding: '0.7em 1.2em' }}>
+        <td style={{ padding: '0.7em 1.2em', boxSizing: "border-box" }}>
           <button disabled={isSaving} onClick={onSave} className="custom-button secondary" style={{ padding: '4px 12px' }}>
             {isSaving ? "Saving..." : "Save"}
           </button>
@@ -147,7 +147,12 @@ const MetricsTable = forwardRef(({ metrics, allMetrics, allCategories, project, 
           if (found) {
             categoryToAssign = found.name;
           } else {
-            throw new Error(`There is no category for ${n} members.`);
+            // Fallback: search for "Student" or "Default"
+            const fallback = allCategories.find(
+              c => c.patternGroup === selectedCat.patternGroup && (c.name.includes("Student") || c.name.includes("Default"))
+            );
+            if (fallback) categoryToAssign = fallback.name;
+            else throw new Error(`There is no category for ${n} members.`);
           }
         } else {
           categoryToAssign = selectedCat.name;
@@ -193,7 +198,13 @@ const MetricsTable = forwardRef(({ metrics, allMetrics, allCategories, project, 
           const team = teams.find(t => (t.externalId || t.name) === metricToUpdate.project.externalId);
           if (!team) continue;
 
-          const n = team.students?.length || 0;
+          let n = team.students?.length || 0;
+
+          // FIX: If it is an individual metric (ends in _student), force n=1
+          if (metricToUpdate.externalId && metricToUpdate.externalId.endsWith('_student')) {
+            n = 1;
+          }
+
           const found = allCategories.find(
             c => c.patternGroup === selectedCat.patternGroup && c.name.startsWith(`${n} members`)
           );
@@ -201,7 +212,12 @@ const MetricsTable = forwardRef(({ metrics, allMetrics, allCategories, project, 
           if (found) {
             categoryToAssign = found.name;
           } else {
-            throw new Error(`There is no category for ${n} members.`);
+            // Fallback: search for "Student" or "Default" if specific size not found
+            const fallback = allCategories.find(
+              c => c.patternGroup === selectedCat.patternGroup && (c.name.includes("Student") || c.name.includes("Default"))
+            );
+            if (fallback) categoryToAssign = fallback.name;
+            else throw new Error(`There is no category for ${n} members.`);
           }
         } else {
           categoryToAssign = selectedCat.name;
@@ -222,16 +238,16 @@ const MetricsTable = forwardRef(({ metrics, allMetrics, allCategories, project, 
   };
 
   return (
-    <div style={{ width: "100%", overflowX: 'auto' }}>
+    <div style={{ width: "100%" }}>
       {message && <FeedbackMessage message={message} onClose={() => setMessage(null)} />}
-      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0 }}>
+      <table style={{ width: "100%", borderCollapse: "separate", borderSpacing: 0, tableLayout: "fixed", boxSizing: "border-box" }}>
         <thead>
           <tr>
-            <th style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>Assessment ID</th>
-            {!isPattern && <th style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>Name</th>}
-            <th style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>Description</th>
-            <th style={{ padding: '0.7em 1.2em', textAlign: 'left' }}>Category</th>
-            <th style={{ padding: '0.7em 1.2em', textAlign: 'left' }}></th>
+            <th style={{ padding: '0.7em 1.2em', textAlign: 'left', width: isPattern ? '30%' : '20%', boxSizing: "border-box" }}>Assessment ID</th>
+            {!isPattern && <th style={{ padding: '0.7em 1.2em', textAlign: 'left', width: '20%', boxSizing: "border-box" }}>Name</th>}
+            <th style={{ padding: '0.7em 1.2em', textAlign: 'left', width: isPattern ? '45%' : '35%', boxSizing: "border-box" }}>Description</th>
+            <th style={{ padding: '0.7em 1.2em', textAlign: 'left', width: '20%', boxSizing: "border-box" }}>Category</th>
+            <th style={{ padding: '0.7em 1.2em', textAlign: 'left', width: '5%', boxSizing: "border-box" }}></th>
           </tr>
         </thead>
         <tbody>
