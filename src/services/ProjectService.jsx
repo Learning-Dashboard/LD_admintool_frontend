@@ -32,6 +32,10 @@ export async function esborrarProjecte(id) {
   return axios.delete(`/api/projects/${id}`);
 }
 
+export async function syncProjectCategories() {
+  return axios.post("/api/projects/sync-categories");
+}
+
 //POST - Validate new student
 export async function validarNouEstudiant(data) {
   const resposta = await axios.post("/api/projects/validate-student", data, {

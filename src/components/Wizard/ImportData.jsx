@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { importMetrics } from '../../services/MetricsService';
 import { importQualityFactors } from '../../services/FactorsService';
 import { fetchStrategicIndicators } from '../../services/StrategicIndicatorsService';
+import { syncProjectCategories } from '../../services/ProjectService';
 
 const ImportData = ({ onNext, onBack, onRefreshStatus, onCompleted }) => {
     // Tracks which steps are done: metrics, factors, indicators
@@ -68,6 +69,14 @@ const ImportData = ({ onNext, onBack, onRefreshStatus, onCompleted }) => {
             addLog(`❌ Error fetching Strategic Indicators: ${error.message}`);
             setLoading(false);
             return; // Stop on error
+        }
+
+        try {
+            addLog("🔄 Synchronizing project metric/factor categories...");
+            await syncProjectCategories();
+            addLog("✅ Categories synchronized across teams.");
+        } catch (error) {
+            addLog(`⚠️ Error synchronizing categories: ${error.message}`);
         }
 
         addLog("🎉 All Data Imported Successfully!");
