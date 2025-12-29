@@ -22,9 +22,10 @@ export async function importarProjectes(dadesProjectes) {
 
 //PUT
 export async function modificarProjecte(projecte) {
-  return axios.put(`/api/projects/${projecte.id}`, projecte, {
+  const resposta = await axios.put(`/api/projects/${projecte.id}`, projecte, {
     headers: { "Content-Type": "application/json" }
   });
+  return resposta.data;
 }
 
 //DELETE

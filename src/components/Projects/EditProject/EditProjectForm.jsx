@@ -1,8 +1,5 @@
 import React, { useState } from "react";
 import { modificarProjecte, validarNouEstudiant } from "../../../services/ProjectService";
-import { importMetrics } from "../../../services/MetricsService";
-import { importQualityFactors } from "../../../services/FactorsService";
-import { fetchStrategicIndicators } from "../../../services/StrategicIndicatorsService";
 import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
@@ -97,23 +94,28 @@ function EditProjectForm({ project, onDone, onBack }) {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Filter out students marked for deletion
-      const studentsToSend = edited.students.filter(s => !s.markedForDeletion);
+  const studentsToSend = (edited.students || []).filter(s => !s.markedForDeletion);
+      setMessage({ type: "info", text: "Running Save & Sync workflow..." });
 
-      await modificarProjecte({ ...edited, students: studentsToSend });
-      setMessage({ type: "info", text: "Changes saved. Updating dashboard data..." });
+      const response = await modificarProjecte({ ...edited, students: studentsToSend });
 
-      // Sequential updates
-      await importMetrics();
-      await importQualityFactors();
-      await fetchStrategicIndicators();
-
-      setMessage({ type: "success", text: "Team updated and data refreshed successfully!" });
-      setTimeout(onDone, 1500);
+      if (response?.success) {
+        setMessage({ type: "success", text: "Team updated and synchronized successfully!" });
+        setTimeout(onDone, 1500);
+      } else {
+        const failureMessage = response?.steps?.find(step => step.status === "FAILED")?.error
+          || "Save & Sync completed with issues.";
+        setMessage({ type: "error", text: failureMessage });
+      }
     } catch (error) {
       console.error(error);
-      const errorMessage = error.response?.data || error.message || "Error saving changes or updating data!";
-      setMessage({ type: "error", text: errorMessage });
+      const responseData = error.response?.data;
+      const failureMessage = responseData?.steps?.find(step => step.status === "FAILED")?.error
+        || responseData?.message
+        || error.response?.data
+        || error.message
+        || "Error saving changes or updating data!";
+      setMessage({ type: "error", text: failureMessage });
     } finally {
       setSaving(false);
     }
@@ -262,7 +264,6 @@ function EditProjectForm({ project, onDone, onBack }) {
           {validating ? "Verifying Membership..." : "Validate & Add Student"}
         </button>
       </section>
-
       <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
         <button
           className="custom-button success"
