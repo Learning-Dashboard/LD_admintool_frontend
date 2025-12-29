@@ -261,7 +261,7 @@ function EditProjectForm({ project, onDone, onBack }) {
           className="custom-button primary"
           style={{ width: '100%', padding: '0.8rem', marginTop: '0.5rem', opacity: validating ? 0.7 : 1, marginLeft: 0 }}
         >
-          {validating ? "Verifying Membership..." : "Validate & Add Student"}
+          {validating ? "Verifying Membership..." : "Validate student"}
         </button>
       </section>
       <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
@@ -271,7 +271,7 @@ function EditProjectForm({ project, onDone, onBack }) {
           disabled={saving}
           style={{ flex: 2, padding: '1rem', fontSize: '1rem', marginLeft: 0 }}
         >
-          {saving ? "Saving Changes..." : "Save and Sync Team"}
+          {saving ? "Saving Changes..." : "Save & Synchronize team"}
         </button>
         <button
           className="custom-button"

@@ -15,7 +15,7 @@ function AdminDashboard() {
           className={`tab-button ${activeTab === 'wizard' ? 'active' : ''}`}
           onClick={() => setActiveTab('wizard')}
         >
-          Configuration (Wizard)
+          Configuration
         </button>
         <button
           className={`tab-button ${activeTab === 'management' ? 'active' : ''}`}
