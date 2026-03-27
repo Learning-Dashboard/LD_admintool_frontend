@@ -19,6 +19,15 @@ RUN npm ci
 # Copiar código fuente
 COPY . .
 
+# Capturar el argumento pasado desde docker-compose
+ARG VITE_API_URL
+
+# Convertirlo en variable de entorno para que el build de Vite lo vea
+ENV VITE_API_URL=$VITE_API_URL
+
+# Debug en el log del build
+RUN echo "Building Frontend with VITE_API_URL=${VITE_API_URL}"
+
 # Build de producción
 RUN npm run build
 
@@ -27,8 +36,11 @@ RUN npm run build
 # ============================================
 FROM nginx:alpine
 
+# Crear la subcarpeta que coincide con la URL base
+RUN mkdir -p /usr/share/nginx/html/admin-tool
+
 # Copiar archivos compilados
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html/admin-tool
 
 # Configuración de Nginx para SPA con proxy al backend
 RUN echo 'server { \
@@ -38,7 +50,7 @@ RUN echo 'server { \
     index index.html; \
     \
     # Proxy para peticiones al backend \
-    location /api/ { \
+    location /admin-tool/api/ { \
         proxy_pass http://admintool_backend:8080/api/; \
         proxy_http_version 1.1; \
         proxy_set_header Upgrade $http_upgrade; \
@@ -47,6 +59,17 @@ RUN echo 'server { \
         proxy_set_header X-Real-IP $remote_addr; \
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for; \
         proxy_set_header X-Forwarded-Proto $scheme; \
+    } \
+    \
+    # Configuración para la subcarpeta /admin-tool/ \
+    location /admin-tool/ { \
+        alias /usr/share/nginx/html/admin-tool/; \
+        try_files $uri $uri/ /admin-tool/index.html; \
+    } \
+    \
+    # Redirigir la raíz a la admin tool (opcional) \
+    location = / { \
+        return 301 /admin-tool/; \
     } \
     \
     # SPA fallback \
