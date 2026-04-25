@@ -83,7 +83,7 @@ EXPOSE 80
 
 # Healthcheck
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1/admin-tool/ || exit 1
 
 # Nginx se ejecuta en foreground por defecto
 CMD ["nginx", "-g", "daemon off;"]
