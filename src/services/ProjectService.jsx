@@ -44,3 +44,10 @@ export async function validarNouEstudiant(data) {
   });
   return resposta.data;
 }
+
+export async function triggerProjectRecovery(projectId, payload = null) {
+  const resposta = payload
+    ? await axios.post(`/api/projects/${projectId}/recover`, payload)
+    : await axios.post(`/api/projects/${projectId}/recover`);
+  return resposta.data;
+}

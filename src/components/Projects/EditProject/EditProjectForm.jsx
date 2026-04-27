@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { modificarProjecte, validarNouEstudiant } from "../../../services/ProjectService";
+import { modificarProjecte, triggerProjectRecovery, validarNouEstudiant } from "../../../services/ProjectService";
 import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
@@ -15,7 +15,12 @@ function EditProjectForm({ project, onDone, onBack }) {
     githubUsername: "",
     taigaUsername: ""
   });
+  const [recoveryTokens, setRecoveryTokens] = useState({
+    githubToken: "",
+    taigaToken: ""
+  });
   const [validating, setValidating] = useState(false);
+  const [recovering, setRecovering] = useState(false);
 
   const handleRemoveStudent = (idx) => {
     setEdited(prev => {
@@ -121,6 +126,41 @@ function EditProjectForm({ project, onDone, onBack }) {
     }
   };
 
+  const handleRecovery = async () => {
+    setRecovering(true);
+    setMessage({ type: "info", text: "Running GitHub/Taiga recovery..." });
+
+    try {
+      const payload = {};
+      if (recoveryTokens.githubToken?.trim()) {
+        payload.githubToken = recoveryTokens.githubToken.trim();
+      }
+      if (recoveryTokens.taigaToken?.trim()) {
+        payload.taigaToken = recoveryTokens.taigaToken.trim();
+      }
+
+      const response = Object.keys(payload).length > 0
+        ? await triggerProjectRecovery(project.id, payload)
+        : await triggerProjectRecovery(project.id);
+      const steps = response?.recovery?.steps || [];
+      const failedStep = steps.find((step) => step.status === "error");
+
+      if (failedStep) {
+        setMessage({
+          type: "error",
+          text: `Recovery failed (${failedStep.source}): ${failedStep.error || "unknown error"}`
+        });
+      } else {
+        setMessage({ type: "success", text: "Recovery finished successfully for GitHub and Taiga." });
+      }
+    } catch (error) {
+      const backendError = error.response?.data?.error;
+      setMessage({ type: "error", text: backendError || error.message || "Recovery failed" });
+    } finally {
+      setRecovering(false);
+    }
+  };
+
   return (
     <div className="edit-project-form glass-effect" style={{ boxSizing: 'border-box', margin: '0 auto', padding: '2rem', background: '#1a1d23', borderRadius: '16px', border: '1px solid #333' }}>
       {message && <FeedbackMessage message={message} onClose={() => setMessage(null)} />}
@@ -139,6 +179,42 @@ function EditProjectForm({ project, onDone, onBack }) {
             value={edited.githubToken}
             onChange={(e) => setEdited({ ...edited, githubToken: e.target.value })}
             placeholder="ghp_xxxxxxxxxxxx"
+            style={{
+              padding: '0.8rem',
+              background: '#0d1117',
+              border: '1px solid #444',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '0.9rem'
+            }}
+          />
+
+          <label style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '0.8rem' }}>
+            GitHub Token for Recovery (optional override)
+          </label>
+          <input
+            type="password"
+            value={recoveryTokens.githubToken}
+            onChange={(e) => setRecoveryTokens({ ...recoveryTokens, githubToken: e.target.value })}
+            placeholder="ghp_xxxxxxxxxxxx"
+            style={{
+              padding: '0.8rem',
+              background: '#0d1117',
+              border: '1px solid #444',
+              borderRadius: '8px',
+              color: '#fff',
+              fontSize: '0.9rem'
+            }}
+          />
+
+          <label style={{ fontSize: '0.85rem', color: '#aaa', marginTop: '0.8rem' }}>
+            Taiga Token for Recovery (optional override)
+          </label>
+          <input
+            type="password"
+            value={recoveryTokens.taigaToken}
+            onChange={(e) => setRecoveryTokens({ ...recoveryTokens, taigaToken: e.target.value })}
+            placeholder="taiga_xxxxxxxxxxxx"
             style={{
               padding: '0.8rem',
               background: '#0d1117',
@@ -266,9 +342,17 @@ function EditProjectForm({ project, onDone, onBack }) {
       </section>
       <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
         <button
+          className="custom-button"
+          onClick={handleRecovery}
+          disabled={saving || recovering}
+          style={{ flex: 1, padding: '1rem', marginLeft: 0 }}
+        >
+          {recovering ? "Running Recovery..." : "Run GitHub/Taiga Recovery"}
+        </button>
+        <button
           className="custom-button success"
           onClick={handleSave}
-          disabled={saving}
+          disabled={saving || recovering}
           style={{ flex: 2, padding: '1rem', fontSize: '1rem', marginLeft: 0 }}
         >
           {saving ? "Saving Changes..." : "Save & Synchronize team"}
@@ -276,7 +360,7 @@ function EditProjectForm({ project, onDone, onBack }) {
         <button
           className="custom-button"
           onClick={onDone}
-          disabled={saving}
+          disabled={saving || recovering}
           style={{ flex: 1, padding: '1rem' }}
         >
           Cancel
