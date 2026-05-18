@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { modificarProjecte, triggerProjectRecovery, validarNouEstudiant } from "../../../services/ProjectService";
+import { modificarProjecte, triggerProjectRecovery, triggerGithubRecovery, triggerTaigaRecovery, validarNouEstudiant } from "../../../services/ProjectService";
 import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
@@ -21,6 +21,8 @@ function EditProjectForm({ project, onDone, onBack }) {
   });
   const [validating, setValidating] = useState(false);
   const [recovering, setRecovering] = useState(false);
+  const [recoveringGithub, setRecoveringGithub] = useState(false);
+  const [recoveringTaiga, setRecoveringTaiga] = useState(false);
 
   const handleRemoveStudent = (idx) => {
     setEdited(prev => {
@@ -158,6 +160,52 @@ function EditProjectForm({ project, onDone, onBack }) {
       setMessage({ type: "error", text: backendError || error.message || "Recovery failed" });
     } finally {
       setRecovering(false);
+    }
+  };
+
+  const handleGithubRecovery = async () => {
+    setRecoveringGithub(true);
+    setMessage({ type: "info", text: "Running GitHub recovery..." });
+    try {
+      const payload = recoveryTokens.githubToken?.trim()
+        ? { githubToken: recoveryTokens.githubToken.trim() }
+        : null;
+      const response = await triggerGithubRecovery(project.id, payload);
+      const steps = response?.recovery?.steps || [];
+      const failedStep = steps.find((step) => step.status === "error");
+      if (failedStep) {
+        setMessage({ type: "error", text: `GitHub recovery failed: ${failedStep.error || "unknown error"}` });
+      } else {
+        setMessage({ type: "success", text: "GitHub recovery finished successfully." });
+      }
+    } catch (error) {
+      const backendError = error.response?.data?.error;
+      setMessage({ type: "error", text: backendError || error.message || "GitHub recovery failed" });
+    } finally {
+      setRecoveringGithub(false);
+    }
+  };
+
+  const handleTaigaRecovery = async () => {
+    setRecoveringTaiga(true);
+    setMessage({ type: "info", text: "Running Taiga recovery..." });
+    try {
+      const payload = recoveryTokens.taigaToken?.trim()
+        ? { taigaToken: recoveryTokens.taigaToken.trim() }
+        : null;
+      const response = await triggerTaigaRecovery(project.id, payload);
+      const steps = response?.recovery?.steps || [];
+      const failedStep = steps.find((step) => step.status === "error");
+      if (failedStep) {
+        setMessage({ type: "error", text: `Taiga recovery failed: ${failedStep.error || "unknown error"}` });
+      } else {
+        setMessage({ type: "success", text: "Taiga recovery finished successfully." });
+      }
+    } catch (error) {
+      const backendError = error.response?.data?.error;
+      setMessage({ type: "error", text: backendError || error.message || "Taiga recovery failed" });
+    } finally {
+      setRecoveringTaiga(false);
     }
   };
 
@@ -340,31 +388,51 @@ function EditProjectForm({ project, onDone, onBack }) {
           {validating ? "Verifying Membership..." : "Validate student"}
         </button>
       </section>
-      <div style={{ display: 'flex', gap: '1rem', marginTop: '3rem' }}>
-        <button
-          className="custom-button"
-          onClick={handleRecovery}
-          disabled={saving || recovering}
-          style={{ flex: 1, padding: '1rem', marginLeft: 0 }}
-        >
-          {recovering ? "Running Recovery..." : "Run GitHub/Taiga Recovery"}
-        </button>
-        <button
-          className="custom-button success"
-          onClick={handleSave}
-          disabled={saving || recovering}
-          style={{ flex: 2, padding: '1rem', fontSize: '1rem', marginLeft: 0 }}
-        >
-          {saving ? "Saving Changes..." : "Save & Synchronize team"}
-        </button>
-        <button
-          className="custom-button"
-          onClick={onDone}
-          disabled={saving || recovering}
-          style={{ flex: 1, padding: '1rem' }}
-        >
-          Cancel
-        </button>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '3rem' }}>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button
+            className="custom-button"
+            onClick={handleGithubRecovery}
+            disabled={saving || recovering || recoveringGithub || recoveringTaiga}
+            style={{ flex: 1, padding: '1rem', marginLeft: 0 }}
+          >
+            {recoveringGithub ? "Running..." : "Run GitHub Recovery"}
+          </button>
+          <button
+            className="custom-button"
+            onClick={handleTaigaRecovery}
+            disabled={saving || recovering || recoveringGithub || recoveringTaiga}
+            style={{ flex: 1, padding: '1rem', marginLeft: 0 }}
+          >
+            {recoveringTaiga ? "Running..." : "Run Taiga Recovery"}
+          </button>
+          <button
+            className="custom-button"
+            onClick={handleRecovery}
+            disabled={saving || recovering || recoveringGithub || recoveringTaiga}
+            style={{ flex: 1, padding: '1rem', marginLeft: 0 }}
+          >
+            {recovering ? "Running Recovery..." : "Run GitHub/Taiga Recovery"}
+          </button>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem' }}>
+          <button
+            className="custom-button success"
+            onClick={handleSave}
+            disabled={saving || recovering || recoveringGithub || recoveringTaiga}
+            style={{ flex: 2, padding: '1rem', fontSize: '1rem', marginLeft: 0 }}
+          >
+            {saving ? "Saving Changes..." : "Save & Synchronize team"}
+          </button>
+          <button
+            className="custom-button"
+            onClick={onDone}
+            disabled={saving || recovering || recoveringGithub || recoveringTaiga}
+            style={{ flex: 1, padding: '1rem' }}
+          >
+            Cancel
+          </button>
+        </div>
       </div>
     </div>
   );
