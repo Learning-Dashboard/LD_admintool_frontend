@@ -6,7 +6,8 @@ import React from 'react';
 
 vi.mock('../../../../services/ProjectService', () => ({
   modificarProjecte: vi.fn(),
-  validarNouEstudiant: vi.fn()
+  validarNouEstudiant: vi.fn(),
+  triggerProjectRecovery: vi.fn()
 }));
 
 // Mock FeedbackMessage
@@ -136,5 +137,32 @@ describe('EditProjectForm', () => {
     // Since component uses setTimeout(onDone, 1500), we can just wait or mock timers.
     // Let's try mocking timers properly inside this scope if we want to speed up.
     // Or just check that message appeared, which implies success path was taken.
+  });
+
+  it('runs team recovery', async () => {
+    ProjectService.triggerProjectRecovery.mockResolvedValue({
+      recovery: {
+        status: 'ok',
+        steps: [
+          { source: 'github', status: 'ok' },
+          { source: 'taiga', status: 'ok' }
+        ]
+      }
+    });
+
+    render(<EditProjectForm project={mockProject} onDone={onDoneMock} onBack={onBackMock} />);
+
+    const tokenInputs = screen.getAllByPlaceholderText('ghp_xxxxxxxxxxxx');
+    fireEvent.change(tokenInputs[1], { target: { value: 'ghp_recovery_1' } });
+    fireEvent.change(screen.getByPlaceholderText('taiga_xxxxxxxxxxxx'), { target: { value: 'taiga_recovery_1' } });
+
+    fireEvent.click(screen.getByRole('button', { name: /Run GitHub\/Taiga Recovery/i }));
+
+    await waitFor(() => {
+      expect(ProjectService.triggerProjectRecovery).toHaveBeenCalledWith(mockProject.id, {
+        githubToken: 'ghp_recovery_1',
+        taigaToken: 'taiga_recovery_1'
+      });
+    });
   });
 });

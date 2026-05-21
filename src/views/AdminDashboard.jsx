@@ -3,12 +3,21 @@ import Wizard from "../components/Wizard/Wizard";
 import PageProjects from "../components/Projects/PageProjects";
 import "../styles.css";
 
-function AdminDashboard() {
+function AdminDashboard({ onLogout }) {
   const [activeTab, setActiveTab] = useState("wizard");
 
   return (
     <div className="admin-dashboard">
-      <h2>Admin Tool</h2>
+      <div className="admin-header">
+        <h2>Admin Tool</h2>
+        <button
+          type="button"
+          className="custom-button logout-button"
+          onClick={onLogout}
+        >
+          Logout
+        </button>
+      </div>
 
       <div className="tab-navigation">
         <button

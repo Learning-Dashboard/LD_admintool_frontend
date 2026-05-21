@@ -7,7 +7,8 @@ import {
   modificarProjecte,
   esborrarProjecte,
   syncProjectCategories,
-  validarNouEstudiant
+  validarNouEstudiant,
+  triggerProjectRecovery
 } from '../../services/ProjectService';
 
 // Mock axios
@@ -158,6 +159,35 @@ describe('ProjectService', () => {
       axios.post.mockRejectedValue(new Error('Validation error'));
 
       await expect(validarNouEstudiant({})).rejects.toThrow('Validation error');
+    });
+  });
+
+  describe('triggerProjectRecovery', () => {
+    it('debería lanzar recovery para un proyecto', async () => {
+      const mockResponse = { data: { status: 'ok' } };
+      axios.post.mockResolvedValue(mockResponse);
+
+      const result = await triggerProjectRecovery(7);
+
+      expect(axios.post).toHaveBeenCalledWith('/api/projects/7/recover');
+      expect(result).toEqual({ status: 'ok' });
+    });
+
+    it('debería manejar error al lanzar recovery', async () => {
+      axios.post.mockRejectedValue(new Error('Recovery failed'));
+
+      await expect(triggerProjectRecovery(7)).rejects.toThrow('Recovery failed');
+    });
+
+    it('debería enviar payload de tokens cuando se proporciona', async () => {
+      const mockResponse = { data: { status: 'ok' } };
+      const payload = { githubToken: 'ghp_123', taigaToken: 'tg_123' };
+      axios.post.mockResolvedValue(mockResponse);
+
+      const result = await triggerProjectRecovery(7, payload);
+
+      expect(axios.post).toHaveBeenCalledWith('/api/projects/7/recover', payload);
+      expect(result).toEqual({ status: 'ok' });
     });
   });
 });
