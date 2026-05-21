@@ -16,15 +16,15 @@ function FeedbackMessage({ message, onClose }) {
         position: "relative", boxShadow: "0 4px 18px #222d",
         textAlign: "center", minWidth: "300px"
       }}>
-        <span style={{
-          fontSize: 20,
-          color: message.type === 'success' ? "#25971d" : "#bb0c00"
-        }}>
-          {message.type === "success"
-            ? <>&#x2705;</>
-            : <>&#x26A0;</>
-          }
-        </span>
+        {message.type === "info"
+          ? <span style={{ fontSize: 20 }}>&#x1F680;</span>
+          : <span style={{
+              fontSize: 20,
+              color: message.type === 'success' ? "#25971d" : "#bb0c00"
+            }}>
+              {message.type === "success" ? <>&#x2705;</> : <>&#x26A0;</>}
+            </span>
+        }
         <span style={{ marginLeft: 10 }}>{message.text}</span>
         <button
           style={{

@@ -30,9 +30,9 @@ export function useCategorySelectOptions(allCategories) {
   }, [allCategories]);
 }
 
-function CategorySelect({ value, onChange, options }) {
+function CategorySelect({ value, onChange, options, ...props }) {
   return (
-    <select value={value} onChange={onChange}>
+    <select value={value} onChange={onChange} {...props}>
       <option value="" disabled>-- Selecciona --</option>
       {options.map(opt => (
         <option key={opt.value} value={opt.value}>{opt.displayName}</option>

@@ -29,3 +29,8 @@ export async function editFactorCategory(id, category, project) {
     { headers: { "Content-Type": "multipart/form-data" } }
   );
 }
+
+// GET import quality factors
+export async function importQualityFactors() {
+  return axios.get("/api/factors/import");
+}

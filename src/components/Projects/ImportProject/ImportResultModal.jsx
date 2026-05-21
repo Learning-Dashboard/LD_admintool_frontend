@@ -1,6 +1,6 @@
 import React from "react";
 
-function ImportResultModal({ result, onClose }) {
+function ImportResultModal({ result, onClose, onNextStep }) {
   if (!result) return null;
 
   const { data } = result;
@@ -241,14 +241,14 @@ function ImportResultModal({ result, onClose }) {
           </div>
         )}
 
-        {/* Botó tancar inferior (opcional) */}
-        <div style={{ textAlign: "center", marginTop: "1.8rem" }}>
+        {/* Botons d'acció */}
+        <div style={{ textAlign: "center", marginTop: "1.8rem", display: "flex", justifyContent: "center", gap: "1rem" }}>
           <button
             onClick={onClose}
             style={{
               padding: "0.6rem 1.8rem",
               fontSize: 14,
-              backgroundColor: "#007bff",
+              backgroundColor: "#555",
               color: "#fff",
               border: "none",
               borderRadius: 5,
@@ -256,8 +256,25 @@ function ImportResultModal({ result, onClose }) {
               fontWeight: "bold",
             }}
           >
-            Tancar
+            Tornar a importar
           </button>
+          {onNextStep && (
+            <button
+              onClick={onNextStep}
+              style={{
+                padding: "0.6rem 1.8rem",
+                fontSize: 14,
+                backgroundColor: "#28a745",
+                color: "#fff",
+                border: "none",
+                borderRadius: 5,
+                cursor: "pointer",
+                fontWeight: "bold",
+              }}
+            >
+              Següent pas
+            </button>
+          )}
         </div>
       </div>
     </div>

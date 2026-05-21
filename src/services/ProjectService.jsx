@@ -22,9 +22,10 @@ export async function importarProjectes(dadesProjectes) {
 
 //PUT
 export async function modificarProjecte(projecte) {
-  return axios.put(`/api/projects/${projecte.id}`, projecte, {
+  const resposta = await axios.put(`/api/projects/${projecte.id}`, projecte, {
     headers: { "Content-Type": "application/json" }
   });
+  return resposta.data;
 }
 
 //DELETE
@@ -32,10 +33,35 @@ export async function esborrarProjecte(id) {
   return axios.delete(`/api/projects/${id}`);
 }
 
+export async function syncProjectCategories() {
+  return axios.post("/api/projects/sync-categories");
+}
+
 //POST - Validate new student
 export async function validarNouEstudiant(data) {
   const resposta = await axios.post("/api/projects/validate-student", data, {
     headers: { "Content-Type": "application/json" }
   });
+  return resposta.data;
+}
+
+export async function triggerProjectRecovery(projectId, payload = null) {
+  const resposta = payload
+    ? await axios.post(`/api/projects/${projectId}/recover`, payload)
+    : await axios.post(`/api/projects/${projectId}/recover`);
+  return resposta.data;
+}
+
+export async function triggerGithubRecovery(projectId, payload = null) {
+  const resposta = payload
+    ? await axios.post(`/api/projects/${projectId}/recover/github`, payload)
+    : await axios.post(`/api/projects/${projectId}/recover/github`);
+  return resposta.data;
+}
+
+export async function triggerTaigaRecovery(projectId, payload = null) {
+  const resposta = payload
+    ? await axios.post(`/api/projects/${projectId}/recover/taiga`, payload)
+    : await axios.post(`/api/projects/${projectId}/recover/taiga`);
   return resposta.data;
 }

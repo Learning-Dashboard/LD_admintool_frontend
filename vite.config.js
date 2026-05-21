@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 
 export default defineConfig({
   plugins: [react()],
+  base: '/admin-tool/', //Para producción
   server: {
     proxy: {
       // Proxy for all API routes starting with /api

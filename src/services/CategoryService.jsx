@@ -21,7 +21,7 @@ export async function importarCategoriesFactors(categories) {
 ///////////////////////////////////////////////////////// STRATEGIC INDICATORS /////////////////////////////////////////////////////////////////////
 //POST
 export async function importarCategoriesStrategicIndicators(interval) {
-    return axios.post("/api/categories/strategicIndicators", interval, {
-        headers: { "Content-Type": "application/json" }
-    });
+  return axios.post("/api/categories/strategicIndicators", interval, {
+    headers: { "Content-Type": "application/json" }
+  });
 }
