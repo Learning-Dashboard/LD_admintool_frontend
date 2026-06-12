@@ -65,3 +65,8 @@ export async function triggerTaigaRecovery(projectId, payload = null) {
     : await axios.post(`/api/projects/${projectId}/recover/taiga`);
   return resposta.data;
 }
+
+export async function getRecoveryStatus(projectId, jobId) {
+  const resposta = await axios.get(`/api/projects/${projectId}/recover/status/${jobId}`);
+  return resposta.data;
+}

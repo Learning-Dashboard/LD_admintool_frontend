@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { modificarProjecte, triggerProjectRecovery, triggerGithubRecovery, triggerTaigaRecovery, validarNouEstudiant } from "../../../services/ProjectService";
+import React, { useState, useRef } from "react";
+import { modificarProjecte, triggerProjectRecovery, triggerGithubRecovery, triggerTaigaRecovery, validarNouEstudiant, getRecoveryStatus } from "../../../services/ProjectService";
 import "../../../styles.css";
 import FeedbackMessage from "../../../utils/FeedbackMessage";
 
@@ -128,30 +128,37 @@ function EditProjectForm({ project, onDone, onBack }) {
     }
   };
 
+  const pollRef = useRef(null);
+
+  const pollUntilDone = async (jobId, labelPrefix) => {
+    let elapsed = 0;
+    while (true) {
+      await new Promise(r => setTimeout(r, 3000));
+      elapsed += 3;
+      setMessage({ type: "info", text: `${labelPrefix} running... (${elapsed}s)` });
+      const status = await getRecoveryStatus(project.id, jobId);
+      if (status.status === "done" || status.status === "error") {
+        return status;
+      }
+    }
+  };
+
   const handleRecovery = async () => {
     setRecovering(true);
-    setMessage({ type: "info", text: "Running GitHub/Taiga recovery..." });
-
+    setMessage({ type: "info", text: "Starting GitHub/Taiga recovery..." });
     try {
       const payload = {};
-      if (recoveryTokens.githubToken?.trim()) {
-        payload.githubToken = recoveryTokens.githubToken.trim();
-      }
-      if (recoveryTokens.taigaToken?.trim()) {
-        payload.taigaToken = recoveryTokens.taigaToken.trim();
-      }
+      if (recoveryTokens.githubToken?.trim()) payload.githubToken = recoveryTokens.githubToken.trim();
+      if (recoveryTokens.taigaToken?.trim()) payload.taigaToken = recoveryTokens.taigaToken.trim();
 
       const response = Object.keys(payload).length > 0
         ? await triggerProjectRecovery(project.id, payload)
         : await triggerProjectRecovery(project.id);
-      const steps = response?.recovery?.steps || [];
-      const failedStep = steps.find((step) => step.status === "error");
 
+      const finalStatus = await pollUntilDone(response.job_id, "GitHub/Taiga recovery");
+      const failedStep = (finalStatus.steps || []).find(s => s.status === "error");
       if (failedStep) {
-        setMessage({
-          type: "error",
-          text: `Recovery failed (${failedStep.source}): ${failedStep.error || "unknown error"}`
-        });
+        setMessage({ type: "error", text: `Recovery failed (${failedStep.source}): ${failedStep.error || "unknown error"}` });
       } else {
         setMessage({ type: "success", text: "Recovery finished successfully for GitHub and Taiga." });
       }
@@ -165,14 +172,14 @@ function EditProjectForm({ project, onDone, onBack }) {
 
   const handleGithubRecovery = async () => {
     setRecoveringGithub(true);
-    setMessage({ type: "info", text: "Running GitHub recovery..." });
+    setMessage({ type: "info", text: "Starting GitHub recovery..." });
     try {
       const payload = recoveryTokens.githubToken?.trim()
         ? { githubToken: recoveryTokens.githubToken.trim() }
         : null;
       const response = await triggerGithubRecovery(project.id, payload);
-      const steps = response?.recovery?.steps || [];
-      const failedStep = steps.find((step) => step.status === "error");
+      const finalStatus = await pollUntilDone(response.job_id, "GitHub recovery");
+      const failedStep = (finalStatus.steps || []).find(s => s.status === "error");
       if (failedStep) {
         setMessage({ type: "error", text: `GitHub recovery failed: ${failedStep.error || "unknown error"}` });
       } else {
@@ -188,14 +195,14 @@ function EditProjectForm({ project, onDone, onBack }) {
 
   const handleTaigaRecovery = async () => {
     setRecoveringTaiga(true);
-    setMessage({ type: "info", text: "Running Taiga recovery..." });
+    setMessage({ type: "info", text: "Starting Taiga recovery..." });
     try {
       const payload = recoveryTokens.taigaToken?.trim()
         ? { taigaToken: recoveryTokens.taigaToken.trim() }
         : null;
       const response = await triggerTaigaRecovery(project.id, payload);
-      const steps = response?.recovery?.steps || [];
-      const failedStep = steps.find((step) => step.status === "error");
+      const finalStatus = await pollUntilDone(response.job_id, "Taiga recovery");
+      const failedStep = (finalStatus.steps || []).find(s => s.status === "error");
       if (failedStep) {
         setMessage({ type: "error", text: `Taiga recovery failed: ${failedStep.error || "unknown error"}` });
       } else {
