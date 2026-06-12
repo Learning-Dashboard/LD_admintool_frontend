@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import EditProject from "./EditProject/EditProject";
+import BulkRecovery from "./BulkRecovery/BulkRecovery";
 import { llistarProjectes, esborrarProjecte } from "../../services/ProjectService";
 import "../../styles.css";
 
@@ -86,10 +87,24 @@ function PageProjects() {
           >
             🗑️ Delete Teams
           </button>
+          <button
+            className={`custom-button ${mode === 'recovery' ? 'active' : ''}`}
+            onClick={() => setMode('recovery')}
+            style={{
+              backgroundColor: mode === 'recovery' ? '#007bff' : '#23272f',
+              border: mode === 'recovery' ? '2px solid #fff' : 'none'
+            }}
+          >
+            🔄 Teams Recovery
+          </button>
         </div>
       </div>
 
-      {mode && !loading && (
+      {mode === 'recovery' && !loading && (
+        <BulkRecovery projects={projects} />
+      )}
+
+      {(mode === 'edit' || mode === 'delete') && !loading && (
         <div className="subjects-grid">
           {Object.keys(grouped).length === 0 ? (
             <div style={{ textAlign: 'center' }}>No teams found.</div>
