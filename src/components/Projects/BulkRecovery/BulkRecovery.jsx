@@ -66,7 +66,8 @@ function BulkRecovery({ projects }) {
   };
 
   const pollUntilDone = async (projectId, jobId, type) => {
-    while (true) {
+    const MAX_POLLS = 60; // 60 × 3 s = 3 min max
+    for (let i = 0; i < MAX_POLLS; i++) {
       await new Promise((r) => setTimeout(r, 3000));
       const status = await getRecoveryStatus(projectId, jobId);
       const currentStep = inferCurrentStep(status.steps || [], type);
@@ -76,6 +77,7 @@ function BulkRecovery({ projects }) {
       });
       if (status.status === "done" || status.status === "error") return status;
     }
+    return { status: "error", steps: [], error: "Timeout: job did not finish in time" };
   };
 
   const runRecovery = async () => {
